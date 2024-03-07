@@ -246,6 +246,13 @@ static nr::ue::UeConfig *ReadConfigYaml()
         result->uacAcc.cls15 = yaml::GetBool(config["uacAcc"], "class15");
     }
 
+    if (yaml::HasField(config,"phyLocation"))
+    {
+        int x = config["phyLocation"]["x"].as<int>();
+        int y = config["phyLocation"]["y"].as<int>();
+        int z = config["phyLocation"]["z"].as<int>();
+        result->phyLocation= Vector3(x,y,z);
+    }
     return result;
 }
 
@@ -371,7 +378,7 @@ static nr::ue::UeConfig *GetConfigByUe(int ueIndex)
     c->integrityMaxRate = g_refConfig->integrityMaxRate;
     c->uacAic = g_refConfig->uacAic;
     c->uacAcc = g_refConfig->uacAcc;
-
+    c->phyLocation = g_refConfig->phyLocation;
     if (c->supi.has_value())
         IncrementNumber(c->supi->value, ueIndex);
     if (c->imei.has_value())

@@ -7,7 +7,6 @@
 //
 
 #include "task.hpp"
-
 #include <ue/app/task.hpp>
 #include <ue/nas/task.hpp>
 #include <ue/rrc/task.hpp>
@@ -23,8 +22,7 @@ UeRlsTask::UeRlsTask(TaskBase *base) : m_base{base}
 
     m_shCtx = new RlsSharedContext();
     m_shCtx->sti = Random::Mixed(base->config->getNodeName()).nextL();
-
-    m_udpTask = new RlsUdpTask(base, m_shCtx, base->config->gnbSearchList);
+    m_udpTask = new RlsUdpTask(base, m_shCtx, base->config->gnbSearchList, base->config->phyLocation);
     m_ctlTask = new RlsControlTask(base, m_shCtx);
 
     m_udpTask->initialize(m_ctlTask);

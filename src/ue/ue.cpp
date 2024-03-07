@@ -12,7 +12,6 @@
 #include "nas/task.hpp"
 #include "rls/task.hpp"
 #include "rrc/task.hpp"
-
 namespace nr::ue
 {
 

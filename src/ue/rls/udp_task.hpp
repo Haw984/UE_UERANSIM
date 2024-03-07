@@ -46,7 +46,7 @@ class RlsUdpTask : public NtsTask
     friend class UeCmdHandler;
 
   public:
-    explicit RlsUdpTask(TaskBase *base, RlsSharedContext* shCtx, const std::vector<std::string> &searchSpace);
+    explicit RlsUdpTask(TaskBase *base, RlsSharedContext* shCtx, const std::vector<std::string> &searchSpace, Vector3 simPos);
     ~RlsUdpTask() override = default;
 
   protected:
