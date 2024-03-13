@@ -54,16 +54,22 @@ void UeRlsTask::onLoop()
             m->dbm = w.dbm;
             m_base->rrcTask->push(std::move(m));
     	    if (w.dbm < -100)
-        	{ 
-        	system("tc qdisc change dev eth1 root netem delay 10ms loss 1%");
+            { 
+        	int flag= system("tc qdisc change dev eth1 root netem delay 10ms loss 1%");
+		if (flag)
+		{
         	std::cout<<"Change in Signal Strength:" << w.dbm << " Dbm, Delay of 10ms, packet loss 1% "<<std::endl;
         	//m_logger->info("Change in UE Signal Strength Dbm: [%s], Delay of 10ms, packet loss 1%", ToJson(dbm).str().c_str());
-       		}
+		}
+       	    }
             if (w.dbm > -100)
-                { 
-                system("tc qdisc change dev eth1 root netem delay 0ms loss 0%");
-                std::cout<<"Change in Signal Strength: "<<w.dbm << " Dbm, Delay of 0ms, packet loss 0% "<<std::endl;
-                }
+            { 
+                int flag =system("tc qdisc change dev eth1 root netem delay 0ms loss 0%");
+                if (flag)
+		{
+		std::cout<<"Change in Signal Strength: "<<w.dbm << " Dbm, Delay of 0ms, packet loss 0% "<<std::endl;
+		}
+            }
 
 
             break;
@@ -87,9 +93,9 @@ void UeRlsTask::onLoop()
             auto m = std::make_unique<NmUeRlsToRrc>(NmUeRlsToRrc::RADIO_LINK_FAILURE);
             m->rlfCause = w.rlfCause;
             m_base->rrcTask->push(std::move(m));
-	    radio_link_failed=1;
-	    system("tc qdisc change dev eth1 root netem delay 0ms loss 0%");
-            break;
+	    int flag=system("tc qdisc change dev eth1 root netem delay 0ms loss 0%");
+            if(flag){}
+	    break;
         }
         case NmUeRlsToRls::TRANSMISSION_FAILURE: {
             m_logger->debug("transmission failure [%d]", w.pduList.size());
