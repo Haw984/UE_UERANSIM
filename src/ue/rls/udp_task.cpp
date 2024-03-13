@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <cstring>
 #include <set>
+#include <cstdlib>
 
 #include <ue/nts.hpp>
 #include <utils/common.hpp>
@@ -139,6 +140,7 @@ void RlsUdpTask::onSignalChangeOrLost(int cellId)
     w->cellId = cellId;
     w->dbm = dbm;
     m_ctlTask->push(std::move(w));
+
 }
 
 void RlsUdpTask::heartbeatCycle(uint64_t time, const Vector3 &simPos)
