@@ -53,10 +53,21 @@ UserEquipment::~UserEquipment()
 
 void UserEquipment::start()
 {
+   // bool restart = true;
+    //while(restart)
+   // {
     taskBase->nasTask->start();
     taskBase->rrcTask->start();
     taskBase->rlsTask->start();
     taskBase->appTask->start();
+    //if (result){
+//	restart = true;
+//	}
+  //  else
+//	{
+//	restart= false;
+  //  	}
+   // }
 }
 
 void UserEquipment::pushCommand(std::unique_ptr<app::UeCliCommand> cmd, const InetAddress &address)

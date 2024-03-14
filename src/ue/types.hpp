@@ -111,6 +111,8 @@ struct UeConfig
     NetworkSlice defaultConfiguredNssai{};
     NetworkSlice configuredNssai{};
     std::optional<std::string> tunName{};
+    //**My Edition**//
+    std::vector<Vector3> phyLocations{};
     struct
     {
         bool mps{};
@@ -130,8 +132,6 @@ struct UeConfig
     /* Assigned by program */
     bool configureRouting{};
     bool prefixLogger{};
-    //**Urwah edited**//
-    Vector3 phyLocation{};
 
 
     [[nodiscard]] std::string getNodeName() const

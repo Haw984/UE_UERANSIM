@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <cstring>
 #include <set>
+#include <cstdlib>
 
 #include <ue/nts.hpp>
 #include <utils/common.hpp>
@@ -24,20 +25,20 @@ static constexpr const int HEARTBEAT_THRESHOLD = 2000; // (LOOP_PERIOD + RECEIVE
 namespace nr::ue
 {
 
-RlsUdpTask::RlsUdpTask(TaskBase *base, RlsSharedContext *shCtx, const std::vector<std::string> &searchSpace, Vector3 simPos)
+RlsUdpTask::RlsUdpTask(TaskBase *base, RlsSharedContext *shCtx, const std::vector<std::string> &searchSpace, std::vector<Vector3> simPos)
     : m_server{}, m_ctlTask{}, m_shCtx{shCtx}, m_searchSpace{}, m_cells{}, m_cellIdToSti{}, m_lastLoop{},m_simPos{simPos},
       m_cellIdCounter{}
 {
     m_logger = base->logBase->makeUniqueLogger(base->config->getLoggerPrefix() + "rls-udp");
 
     m_server = new udp::UdpServer();
-
     for (auto &ip : searchSpace)
         m_searchSpace.emplace_back(ip, cons::RadioLinkPort);
 }
 
 void RlsUdpTask::onStart()
 {
+   m_simPosIndex = 0;
 }
 
 void RlsUdpTask::onLoop()
@@ -46,7 +47,11 @@ void RlsUdpTask::onLoop()
     if (current - m_lastLoop > LOOP_PERIOD)
     {
         m_lastLoop = current;
-        heartbeatCycle(current, m_simPos);
+        // Increment the index to move to the next position in m_simPos
+        m_simPosIndex = (m_simPosIndex + 1) % m_simPos.size();
+        // Pass the corresponding Vector3 to heartbeatCycle
+        heartbeatCycle(current, m_simPos[m_simPosIndex]);
+        //heartbeatCycle(current, m_simPos);
     }
 
     uint8_t buffer[BUFFER_SIZE];
@@ -135,6 +140,7 @@ void RlsUdpTask::onSignalChangeOrLost(int cellId)
     w->cellId = cellId;
     w->dbm = dbm;
     m_ctlTask->push(std::move(w));
+
 }
 
 void RlsUdpTask::heartbeatCycle(uint64_t time, const Vector3 &simPos)

@@ -40,13 +40,14 @@ class RlsUdpTask : public NtsTask
     std::unordered_map<uint64_t, CellInfo> m_cells;
     std::unordered_map<int, uint64_t> m_cellIdToSti;
     int64_t m_lastLoop;
-    Vector3 m_simPos;
+    std::vector<Vector3> m_simPos;
     int m_cellIdCounter;
+    int m_simPosIndex;
 
     friend class UeCmdHandler;
 
   public:
-    explicit RlsUdpTask(TaskBase *base, RlsSharedContext* shCtx, const std::vector<std::string> &searchSpace, Vector3 simPos);
+    explicit RlsUdpTask(TaskBase *base, RlsSharedContext* shCtx, const std::vector<std::string> &searchSpace, std::vector<Vector3> simPos);
     ~RlsUdpTask() override = default;
 
   protected:

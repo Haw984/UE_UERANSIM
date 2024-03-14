@@ -7,6 +7,7 @@
 //
 
 #include "task.hpp"
+#include <iostream>
 #include <ue/app/task.hpp>
 #include <ue/nas/task.hpp>
 #include <ue/rrc/task.hpp>
@@ -22,7 +23,7 @@ UeRlsTask::UeRlsTask(TaskBase *base) : m_base{base}
 
     m_shCtx = new RlsSharedContext();
     m_shCtx->sti = Random::Mixed(base->config->getNodeName()).nextL();
-    m_udpTask = new RlsUdpTask(base, m_shCtx, base->config->gnbSearchList, base->config->phyLocation);
+    m_udpTask = new RlsUdpTask(base, m_shCtx, base->config->gnbSearchList, base->config->phyLocations);
     m_ctlTask = new RlsControlTask(base, m_shCtx);
 
     m_udpTask->initialize(m_ctlTask);
@@ -52,6 +53,25 @@ void UeRlsTask::onLoop()
             m->cellId = w.cellId;
             m->dbm = w.dbm;
             m_base->rrcTask->push(std::move(m));
+    	    if (w.dbm < -100)
+            { 
+        	int flag= system("tc qdisc change dev eth1 root netem delay 10ms loss 1%");
+		if (flag)
+		{
+        	std::cout<<"Change in Signal Strength:" << w.dbm << " Dbm, Delay of 10ms, packet loss 1% "<<std::endl;
+        	//m_logger->info("Change in UE Signal Strength Dbm: [%s], Delay of 10ms, packet loss 1%", ToJson(dbm).str().c_str());
+		}
+       	    }
+            if (w.dbm > -100)
+            { 
+                int flag =system("tc qdisc change dev eth1 root netem delay 0ms loss 0%");
+                if (flag)
+		{
+		std::cout<<"Change in Signal Strength: "<<w.dbm << " Dbm, Delay of 0ms, packet loss 0% "<<std::endl;
+		}
+            }
+
+
             break;
         }
         case NmUeRlsToRls::DOWNLINK_DATA: {
@@ -73,7 +93,9 @@ void UeRlsTask::onLoop()
             auto m = std::make_unique<NmUeRlsToRrc>(NmUeRlsToRrc::RADIO_LINK_FAILURE);
             m->rlfCause = w.rlfCause;
             m_base->rrcTask->push(std::move(m));
-            break;
+	    int flag=system("tc qdisc change dev eth1 root netem delay 0ms loss 0%");
+            if(flag){}
+	    break;
         }
         case NmUeRlsToRls::TRANSMISSION_FAILURE: {
             m_logger->debug("transmission failure [%d]", w.pduList.size());
