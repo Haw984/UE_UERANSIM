@@ -43,11 +43,13 @@ class RlsUdpTask : public NtsTask
     std::vector<Vector3> m_simPos;
     int m_cellIdCounter;
     int m_simPosIndex;
-
+    int m_velocity;
     friend class UeCmdHandler;
+    int velocity_in_time;
 
   public:
-    explicit RlsUdpTask(TaskBase *base, RlsSharedContext* shCtx, const std::vector<std::string> &searchSpace, std::vector<Vector3> simPos);
+    explicit RlsUdpTask(TaskBase *base, RlsSharedContext* shCtx, const std::vector<std::string> &searchSpace, 
+    std::vector<Vector3> simPos, const int velocity);
     ~RlsUdpTask() override = default;
 
   protected:
@@ -60,6 +62,7 @@ class RlsUdpTask : public NtsTask
     void receiveRlsPdu(const InetAddress &addr, std::unique_ptr<rls::RlsMessage> &&msg);
     void onSignalChangeOrLost(int cellId);
     void heartbeatCycle(uint64_t time, const Vector3 &simPos);
+    int speedTimeCalculation(const std::vector<Vector3> simPos, int velocity);
 
   public:
     void initialize(NtsTask *ctlTask);

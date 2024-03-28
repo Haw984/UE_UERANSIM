@@ -12,7 +12,7 @@
 #include <cstring>
 #include <set>
 #include <cstdlib>
-
+#include <cmath>
 #include <ue/nts.hpp>
 #include <utils/common.hpp>
 #include <utils/constants.hpp>
@@ -25,9 +25,9 @@ static constexpr const int HEARTBEAT_THRESHOLD = 2000; // (LOOP_PERIOD + RECEIVE
 namespace nr::ue
 {
 
-RlsUdpTask::RlsUdpTask(TaskBase *base, RlsSharedContext *shCtx, const std::vector<std::string> &searchSpace, std::vector<Vector3> simPos)
+RlsUdpTask::RlsUdpTask(TaskBase *base, RlsSharedContext *shCtx, const std::vector<std::string> &searchSpace, std::vector<Vector3> simPos, const int velocity)
     : m_server{}, m_ctlTask{}, m_shCtx{shCtx}, m_searchSpace{}, m_cells{}, m_cellIdToSti{}, m_lastLoop{},m_simPos{simPos},
-      m_cellIdCounter{}
+      m_cellIdCounter{},m_velocity{velocity}
 {
     m_logger = base->logBase->makeUniqueLogger(base->config->getLoggerPrefix() + "rls-udp");
 
@@ -39,12 +39,13 @@ RlsUdpTask::RlsUdpTask(TaskBase *base, RlsSharedContext *shCtx, const std::vecto
 void RlsUdpTask::onStart()
 {
    m_simPosIndex = 0;
+   velocity_in_time = speedTimeCalculation(m_simPos, m_velocity);
 }
 
 void RlsUdpTask::onLoop()
 {
     auto current = utils::CurrentTimeMillis();
-    if (current - m_lastLoop > LOOP_PERIOD)
+    if (current - m_lastLoop > velocity_in_time)
     {
         m_lastLoop = current;
         // Increment the index to move to the next position in m_simPos
@@ -150,7 +151,7 @@ void RlsUdpTask::heartbeatCycle(uint64_t time, const Vector3 &simPos)
     for (auto &cell : m_cells)
     {
         auto delta = time - cell.second.lastSeen;
-        if (delta > HEARTBEAT_THRESHOLD)
+        if (delta >  RECEIVE_TIMEOUT + velocity_in_time + velocity_in_time)
             toRemove.insert({cell.first, cell.second.cellId});
     }
 
@@ -174,6 +175,40 @@ void RlsUdpTask::heartbeatCycle(uint64_t time, const Vector3 &simPos)
 void RlsUdpTask::initialize(NtsTask *ctlTask)
 {
     m_ctlTask = ctlTask;
+}
+
+int RlsUdpTask::speedTimeCalculation(const std::vector<Vector3> simPos, int velocity)
+{
+    std::vector<double> x_values, y_values, z_values;
+    for (const auto& vector : simPos) {
+        x_values.push_back(vector.x);
+        y_values.push_back(vector.y);
+        z_values.push_back(vector.z);
+    }
+
+    size_t size = x_values.size();
+    int lastIndex = size - 1;
+    int deltaX = x_values[lastIndex] - x_values[0];
+    int deltaY = y_values[lastIndex] - y_values[0];
+    int deltaZ = z_values[lastIndex] - z_values[0];
+
+    // Compute squared distances separately and then take the square root
+    double squaredDistance = deltaX * deltaX + deltaY * deltaY + deltaZ * deltaZ;
+    double distance = std::sqrt(squaredDistance);
+
+    double time;
+    if (distance == 0) {
+        distance = 1;
+        time = 0;
+    } else {
+        double time_in_sec = distance / velocity;
+        std::cout << "time in second: " << time_in_sec << std::endl;
+        time = time_in_sec * 1000; // convert into millisecond
+        std::cout << "time in millisecond: " << time << std::endl;
+    }
+
+    return time;
+
 }
 
 } // namespace nr::ue

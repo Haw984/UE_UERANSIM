@@ -275,6 +275,16 @@ static nr::ue::UeConfig *ReadConfigYaml()
         }
     }
     }
+    if (yaml::HasField(config, "mobility"))
+    {
+        result->velocity=config["mobility"].as<int>();
+    }
+
+    if (yaml::HasField(config, "wifi"))
+    {
+	result->wifi=config["wifi"].as<bool>();
+	std::cout<<"Wifi AP: "<<result->wifi<<std::endl;
+    }
     return result;
 }
 
@@ -401,6 +411,8 @@ static nr::ue::UeConfig *GetConfigByUe(int ueIndex)
     c->uacAic = g_refConfig->uacAic;
     c->uacAcc = g_refConfig->uacAcc;
     c->phyLocations = g_refConfig->phyLocations;
+    c->velocity = g_refConfig->velocity;
+    c->wifi = g_refConfig->wifi;
     if (c->supi.has_value())
         IncrementNumber(c->supi->value, ueIndex);
     if (c->imei.has_value())
