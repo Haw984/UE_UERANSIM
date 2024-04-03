@@ -5,7 +5,7 @@
 // https://github.com/aligungr/UERANSIM/
 // See README, LICENSE, and CONTRIBUTING files for licensing details.
 //
-
+#include <ue/types.hpp>
 #include "task.hpp"
 #include "cmd_handler.hpp"
 #include <lib/nas/utils.hpp>
@@ -47,7 +47,37 @@ void UeAppTask::onLoop()
 {
     auto msg = take();
     if (!msg)
-        return;
+    {
+	PduSession wifiSession(1);
+        wifiSession.psState = EPsState::ACTIVE;
+        wifiSession.uplinkPending = true;
+        wifiSession.sessionType = nas::EPduSessionType::IPV4;
+        std::vector<unsigned char> bytes = {0b00001010, 0b00000000, 0b00000001, 0b00001110};
+        OctetString address(std::move(bytes)); // Use std::move to cast bytes to an rvalue reference
+        nas::IEPduAddress pduAddress(wifiSession.sessionType, std::move(address)); // Wrap OctetString in IEPduA>
+        wifiSession.pduAddress = std::move(pduAddress); // Assign IEPduAddress to pduAddress member of session
+
+	if ( state == "Establish")
+	{
+        setupTunInterface(&wifiSession); // Pass the address of session to setupTunInterface
+	}
+	else if (state == "Maintain")
+	{return;}
+	else if (state == "Release")
+	{
+	    if (m_tunTasks[wifiSession.psi] != nullptr)
+            {
+		m_tunTasks[wifiSession.psi]->quit();
+                delete m_tunTasks[wifiSession.psi];
+                m_tunTasks[wifiSession.psi] = nullptr;
+            }
+            return;
+	}
+	else
+	{
+	   return;
+	}
+    }
 
     switch (msg->msgType)
     {

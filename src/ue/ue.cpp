@@ -61,10 +61,10 @@ void UserEquipment::start()
 {
     if(!UserEquipment::wifiAP)
     {
-    taskBase->nasTask->start();
-    taskBase->rrcTask->start();
+    //taskBase->nasTask->start();
+    //taskBase->rrcTask->start();
     taskBase->rlsTask->start();
-    taskBase->appTask->start();
+    //taskBase->appTask->start();
     }
     else
     {

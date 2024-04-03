@@ -16,7 +16,7 @@
 #include <lib/udp/server.hpp>
 #include <ue/types.hpp>
 #include <utils/nts.hpp>
-
+#include <ue/app/task.hpp>
 namespace nr::ue
 {
 
@@ -46,10 +46,11 @@ class RlsUdpTask : public NtsTask
     int m_velocity;
     friend class UeCmdHandler;
     int velocity_in_time;
+    bool m_wifi;
 
   public:
     explicit RlsUdpTask(TaskBase *base, RlsSharedContext* shCtx, const std::vector<std::string> &searchSpace, 
-    std::vector<Vector3> simPos, const int velocity);
+    std::vector<Vector3> simPos, const int velocity, const bool wifi);
     ~RlsUdpTask() override = default;
 
   protected:

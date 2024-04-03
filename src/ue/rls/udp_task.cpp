@@ -13,6 +13,7 @@
 #include <set>
 #include <cstdlib>
 #include <cmath>
+#include <ue/app/task.hpp>
 #include <ue/nts.hpp>
 #include <utils/common.hpp>
 #include <utils/constants.hpp>
@@ -25,9 +26,9 @@ static constexpr const int HEARTBEAT_THRESHOLD = 2000; // (LOOP_PERIOD + RECEIVE
 namespace nr::ue
 {
 
-RlsUdpTask::RlsUdpTask(TaskBase *base, RlsSharedContext *shCtx, const std::vector<std::string> &searchSpace, std::vector<Vector3> simPos, const int velocity)
+RlsUdpTask::RlsUdpTask(TaskBase *base, RlsSharedContext *shCtx, const std::vector<std::string> &searchSpace, std::vector<Vector3> simPos, const int velocity, const bool wifi)
     : m_server{}, m_ctlTask{}, m_shCtx{shCtx}, m_searchSpace{}, m_cells{}, m_cellIdToSti{}, m_lastLoop{},m_simPos{simPos},
-      m_cellIdCounter{},m_velocity{velocity}
+      m_cellIdCounter{},m_velocity{velocity}, m_wifi{wifi}
 {
     m_logger = base->logBase->makeUniqueLogger(base->config->getLoggerPrefix() + "rls-udp");
 
@@ -40,6 +41,7 @@ void RlsUdpTask::onStart()
 {
    m_simPosIndex = 0;
    velocity_in_time = speedTimeCalculation(m_simPos, m_velocity);
+   connectionEstablished = false;
 }
 
 void RlsUdpTask::onLoop()
@@ -113,6 +115,18 @@ void RlsUdpTask::receiveRlsPdu(const InetAddress &addr, std::unique_ptr<rls::Rls
 
         if (oldDbm != newDbm)
             onSignalChangeOrLost(m_cells[msg->sti].cellId);
+	if (m_wifi)
+	{
+	    if (newDbm > -120 && !connectionEstablished)
+	    {
+	        state = std::move("Establish");
+	        connectionEstablished = true;
+	    }
+	    else if (newDbm > -120 && connectionEstablished)
+	    {
+	        state = std::move("Maintain");
+	    }
+	}
         return;
     }
 

@@ -135,6 +135,9 @@ class NtsTask
     bool setTimerAbsolute(int timerId, int64_t timeMs);
 
   protected:
+    bool connectionEstablished;
+    std::string state;
+
     std::unique_ptr<NtsMessage> poll();
     std::unique_ptr<NtsMessage> poll(int64_t timeout);
     std::unique_ptr<NtsMessage> take();
