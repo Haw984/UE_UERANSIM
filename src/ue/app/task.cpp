@@ -63,6 +63,7 @@ void UeAppTask::onLoop()
 	std::cout<<"if statement of setup tun"<<std::endl;
         setupTunInterface(&wifiSession); // Pass the address of session to setupTunInterface
 	NtsTask::connectionEstablished = true;
+	NtsTask::state =  std::move("Maintain");
 	}
 	else if (state == "Maintain" && NtsTask::counter < 10)
 	{
@@ -78,7 +79,7 @@ void UeAppTask::onLoop()
             }
             state == "";
 	}
-	else if (NtsTask::counter > 10)
+	else if (NtsTask::counter > SWITCH_OFF_DELAY)
 	{
 	    if (m_tunTasks[wifiSession.psi] != nullptr)
             {
