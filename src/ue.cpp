@@ -275,9 +275,9 @@ static nr::ue::UeConfig *ReadConfigYaml()
         }
     }
     }
-    if (yaml::HasField(config, "mobility"))
+    if (yaml::HasField(config, "velocity"))
     {
-        result->velocity=config["mobility"].as<int>();
+        result->velocity=config["velocity"].as<int>();
     }
 
     if (yaml::HasField(config, "wifi"))

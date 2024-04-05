@@ -5,6 +5,7 @@
 // https://github.com/aligungr/UERANSIM/
 // See README, LICENSE, and CONTRIBUTING files for licensing details.
 //
+#include <iostream>
 #include <ue/types.hpp>
 #include "task.hpp"
 #include "cmd_handler.hpp"
@@ -17,7 +18,6 @@
 
 static constexpr const int SWITCH_OFF_TIMER_ID = 1;
 static constexpr const int SWITCH_OFF_DELAY = 500;
-
 namespace nr::ue
 {
 
@@ -46,8 +46,10 @@ void UeAppTask::onQuit()
 void UeAppTask::onLoop()
 {
     auto msg = take();
-    if (!msg)
-    {
+    if (!msg){	
+	if (NtsTask::establishConnection == true)
+    	{
+	std::cout<<"src/ue/app/task state: "<<state<<std::endl;
 	PduSession wifiSession(1);
         wifiSession.psState = EPsState::ACTIVE;
         wifiSession.uplinkPending = true;
@@ -56,13 +58,16 @@ void UeAppTask::onLoop()
         OctetString address(std::move(bytes)); // Use std::move to cast bytes to an rvalue reference
         nas::IEPduAddress pduAddress(wifiSession.sessionType, std::move(address)); // Wrap OctetString in IEPduA>
         wifiSession.pduAddress = std::move(pduAddress); // Assign IEPduAddress to pduAddress member of session
-
 	if ( state == "Establish")
 	{
+	std::cout<<"if statement of setup tun"<<std::endl;
         setupTunInterface(&wifiSession); // Pass the address of session to setupTunInterface
+	NtsTask::connectionEstablished = true;
 	}
-	else if (state == "Maintain")
-	{return;}
+	else if (state == "Maintain" && NtsTask::counter < 10)
+	{
+	std::cout<<"Maintain is running"<<std::endl;
+	}
 	else if (state == "Release")
 	{
 	    if (m_tunTasks[wifiSession.psi] != nullptr)
@@ -71,14 +76,24 @@ void UeAppTask::onLoop()
                 delete m_tunTasks[wifiSession.psi];
                 m_tunTasks[wifiSession.psi] = nullptr;
             }
-            return;
+            state == "";
 	}
-	else
+	else if (NtsTask::counter > 10)
 	{
-	   return;
+	    if (m_tunTasks[wifiSession.psi] != nullptr)
+            {
+                m_tunTasks[wifiSession.psi]->quit();
+                delete m_tunTasks[wifiSession.psi];
+                m_tunTasks[wifiSession.psi] = nullptr;
+            }
+	    NtsTask::counter = 0;
+	    std::cout<<"app/task counter is detecting gNB is off"<<std::endl;
+	    NtsTask::establishConnection = false;
+	    NtsTask::connectionEstablished = false;
 	}
+	}
+    return;
     }
-
     switch (msg->msgType)
     {
     case NtsMessageType::UE_TUN_TO_APP: {

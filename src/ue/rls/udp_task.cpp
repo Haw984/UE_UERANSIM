@@ -23,6 +23,10 @@ static constexpr const int LOOP_PERIOD = 1000;
 static constexpr const int RECEIVE_TIMEOUT = 200;
 static constexpr const int HEARTBEAT_THRESHOLD = 2000; // (LOOP_PERIOD + RECEIVE_TIMEOUT)'dan büyük olmalı
 
+bool NtsTask::connectionEstablished = false;
+bool NtsTask::establishConnection = false;
+std::string NtsTask::state = "";
+int NtsTask::counter = 0;
 namespace nr::ue
 {
 
@@ -41,7 +45,6 @@ void RlsUdpTask::onStart()
 {
    m_simPosIndex = 0;
    velocity_in_time = speedTimeCalculation(m_simPos, m_velocity);
-   connectionEstablished = false;
 }
 
 void RlsUdpTask::onLoop()
@@ -68,6 +71,11 @@ void RlsUdpTask::onLoop()
             m_logger->err("Unable to decode RLS message");
         else
             receiveRlsPdu(peerAddress, std::move(rlsMsg));
+    }
+    else
+    {
+	std::cout<<"counter: "<<NtsTask::counter<<std::endl;
+	NtsTask::counter++;
     }
 }
 
@@ -112,27 +120,39 @@ void RlsUdpTask::receiveRlsPdu(const InetAddress &addr, std::unique_ptr<rls::Rls
 
         int newDbm = ((const rls::RlsHeartBeatAck &)*msg).dbm;
         m_cells[msg->sti].dbm = newDbm;
-
-        if (oldDbm != newDbm)
-            onSignalChangeOrLost(m_cells[msg->sti].cellId);
+	std::cout<<"newDbm: " <<newDbm<<"establishconnection: "<<NtsTask::establishConnection<<"connectionestablished: "<<NtsTask::connectionEstablished<<std::endl;
 	if (m_wifi)
-	{
-	    if (newDbm > -120 && !connectionEstablished)
+        {
+            if (newDbm > -120 && NtsTask::establishConnection == false)
+            {
+                NtsTask::state = std::move("Establish");
+		std::cout<<"state: "<<NtsTask::state<<std::endl;
+                NtsTask::establishConnection = true;
+            }
+            else if (newDbm > -120 && NtsTask::establishConnection == true && NtsTask::connectionEstablished == true)
+            {
+                state = std::move("Maintain");
+            }
+	    else if (newDbm < -120)
 	    {
-	        state = std::move("Establish");
-	        connectionEstablished = true;
+		std::cout<<"release working"<<std::endl;
+		state = std::move("Release");
+		NtsTask::connectionEstablished = false;
 	    }
-	    else if (newDbm > -120 && connectionEstablished)
-	    {
-	        state = std::move("Maintain");
-	    }
-	}
-        return;
+        }
+	NtsTask::counter = 0;
+        if (oldDbm != newDbm)
+           {onSignalChangeOrLost(m_cells[msg->sti].cellId);}
+	return;
     }
 
     if (!m_cells.count(msg->sti))
     {
         // if no HB-ACK received yet, and the message is not HB-ACK, then ignore the message
+	std::cout<<"release working"<<std::endl;
+        state = std::move("Release");
+        NtsTask::connectionEstablished = false;
+
         return;
     }
 
@@ -165,7 +185,7 @@ void RlsUdpTask::heartbeatCycle(uint64_t time, const Vector3 &simPos)
     for (auto &cell : m_cells)
     {
         auto delta = time - cell.second.lastSeen;
-        if (delta >  RECEIVE_TIMEOUT + velocity_in_time + velocity_in_time)
+        if (delta >  RECEIVE_TIMEOUT + velocity_in_time + velocity_in_time + 100)
             toRemove.insert({cell.first, cell.second.cellId});
     }
 

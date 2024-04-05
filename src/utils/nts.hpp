@@ -125,6 +125,10 @@ class NtsTask
     std::thread thread;
 
   public:
+    static bool connectionEstablished;
+    static std::string state;
+    static bool establishConnection;
+    static int counter;
     NtsTask() = default;
 
     virtual ~NtsTask() = default;
@@ -135,9 +139,6 @@ class NtsTask
     bool setTimerAbsolute(int timerId, int64_t timeMs);
 
   protected:
-    bool connectionEstablished;
-    std::string state;
-
     std::unique_ptr<NtsMessage> poll();
     std::unique_ptr<NtsMessage> poll(int64_t timeout);
     std::unique_ptr<NtsMessage> take();

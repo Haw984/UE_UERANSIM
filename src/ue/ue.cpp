@@ -27,16 +27,17 @@ UserEquipment::UserEquipment(UeConfig *config, app::IUeController *ueController,
     base->nodeListener = nodeListener;
     base->cliCallbackTask = cliCallbackTask;
     UserEquipment::wifiAP = base->config->wifi;
-    if(!wifiAP){
+    //if(!wifiAP){
     base->nasTask = new NasTask(base);
     base->rrcTask = new UeRrcTask(base);
     base->appTask = new UeAppTask(base);
     base->rlsTask = new UeRlsTask(base);
-    }
+    /*}
     else{
-	base->rrcTask = new UeRrcTask(base);
+	//base->rrcTask = new UeRrcTask(base);
 	base->rlsTask = new UeRlsTask(base);
-    }
+	base->appTask = new UeAppTask(base);
+    }*/
     taskBase = base;
 }
 
@@ -61,16 +62,17 @@ void UserEquipment::start()
 {
     if(!UserEquipment::wifiAP)
     {
-    //taskBase->nasTask->start();
-    //taskBase->rrcTask->start();
-    taskBase->rlsTask->start();
-    //taskBase->appTask->start();
+    	taskBase->nasTask->start();
+    	taskBase->rrcTask->start();
+    	taskBase->rlsTask->start();
+    	taskBase->appTask->start();
     }
     else
     {
     	std::cout<<"WIFI AP RUNNING"<<std::endl;
     	//taskBase->rrcTask->start();
 	taskBase->rlsTask->start();
+	taskBase->appTask->start();
     }
 }
 
