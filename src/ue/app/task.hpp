@@ -33,6 +33,7 @@ class UeAppTask : public NtsTask
     friend class UeCmdHandler;
 
   public:
+    std::vector<unsigned char> bytes;
     explicit UeAppTask(TaskBase *base);
     ~UeAppTask() override = default;
 

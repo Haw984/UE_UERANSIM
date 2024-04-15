@@ -16,8 +16,33 @@
 #include <utils/common.hpp>
 #include <utils/constants.hpp>
 
+#include <sstream>
+#include <vector>
+#include <string>
+#include <stdexcept>
+
+std::vector<unsigned char> ip_to_bytes(const std::string& ip_address) 
+{
+    std::vector<unsigned char> bytes;
+
+    // Create a string stream to tokenize the IP address string
+    std::istringstream iss(ip_address);
+    std::string octet;
+
+    // Tokenize the IP address string by '.' delimiter and convert each octet to its numeric value
+    while (std::getline(iss, octet, '.')) {
+        // Convert the octet string to an integer and store it as a byte
+        unsigned char byte = static_cast<unsigned char>(std::stoi(octet));
+        bytes.push_back(byte);
+    }
+  
+  return bytes;
+}
+
+
 static constexpr const int SWITCH_OFF_TIMER_ID = 1;
 static constexpr const int SWITCH_OFF_DELAY = 500;
+
 namespace nr::ue
 {
 
@@ -28,6 +53,15 @@ UeAppTask::UeAppTask(TaskBase *base) : m_base{base}
 
 void UeAppTask::onStart()
 {
+    std::cout<<"Static IP: "<<m_base->config->staticIP<< std::endl;
+    std::string ip_address = m_base->config->staticIP;
+    try {
+	bytes = ip_to_bytes(ip_address);
+	// bytes will now contain {10, 0, 4, 14}
+    } catch (const std::invalid_argument& e) {
+	std::cerr << "Error: " << e.what() << std::endl;
+}
+
 }
 
 void UeAppTask::onQuit()
@@ -49,25 +83,23 @@ void UeAppTask::onLoop()
     if (!msg){	
 	if (NtsTask::establishConnection == true)
     	{
-	std::cout<<"src/ue/app/task state: "<<state<<std::endl;
 	PduSession wifiSession(1);
         wifiSession.psState = EPsState::ACTIVE;
         wifiSession.uplinkPending = true;
         wifiSession.sessionType = nas::EPduSessionType::IPV4;
-        std::vector<unsigned char> bytes = {0b00001010, 0b00000000, 0b00000001, 0b00001110};
+        //std::vector<unsigned char> bytes = {0b00001010, 0b00000000, 0b00000001, 0b00001110};
         OctetString address(std::move(bytes)); // Use std::move to cast bytes to an rvalue reference
         nas::IEPduAddress pduAddress(wifiSession.sessionType, std::move(address)); // Wrap OctetString in IEPduA>
         wifiSession.pduAddress = std::move(pduAddress); // Assign IEPduAddress to pduAddress member of session
 	if ( state == "Establish")
 	{
-	std::cout<<"if statement of setup tun"<<std::endl;
         setupTunInterface(&wifiSession); // Pass the address of session to setupTunInterface
 	NtsTask::connectionEstablished = true;
 	NtsTask::state =  std::move("Maintain");
 	}
 	else if (state == "Maintain" && NtsTask::counter < 10)
 	{
-	std::cout<<"Maintain is running"<<std::endl;
+		return;
 	}
 	else if (state == "Release")
 	{
@@ -88,7 +120,6 @@ void UeAppTask::onLoop()
                 m_tunTasks[wifiSession.psi] = nullptr;
             }
 	    NtsTask::counter = 0;
-	    std::cout<<"app/task counter is detecting gNB is off"<<std::endl;
 	    NtsTask::establishConnection = false;
 	    NtsTask::connectionEstablished = false;
 	}

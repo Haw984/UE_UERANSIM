@@ -56,8 +56,9 @@ void UeRlsTask::onLoop()
             m_base->rrcTask->push(std::move(m));
     	    if (w.dbm < -100)
             { 
+		int check = system ("tc qdisc show dev eth1");
         	int flag= system("tc qdisc change dev eth1 root netem delay 10ms loss 1%");
-		if (flag)
+		if (flag == 0)
 		{
         	std::cout<<"Change in Signal Strength:" << w.dbm << " Dbm, Delay of 10ms, packet loss 1% "<<std::endl;
         	//m_logger->info("Change in UE Signal Strength Dbm: [%s], Delay of 10ms, packet loss 1%", ToJson(dbm).str().c_str());
@@ -66,7 +67,7 @@ void UeRlsTask::onLoop()
             if (w.dbm > -100)
             { 
                 int flag =system("tc qdisc change dev eth1 root netem delay 0ms loss 0%");
-                if (flag)
+                if (flag == 0)
 		{
 		std::cout<<"Change in Signal Strength: "<<w.dbm << " Dbm, Delay of 0ms, packet loss 0% "<<std::endl;
 		}

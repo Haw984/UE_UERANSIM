@@ -285,6 +285,11 @@ static nr::ue::UeConfig *ReadConfigYaml()
 	result->wifi=config["wifi"].as<bool>();
 	std::cout<<"Wifi AP: "<<result->wifi<<std::endl;
     }
+    if (yaml::HasField(config, "wifi"))
+    {
+	result->staticIP = yaml::GetString(config,"staticIP");
+	std::cout<<"staticx IP: "<<result->staticIP;
+    }
     return result;
 }
 
@@ -413,6 +418,7 @@ static nr::ue::UeConfig *GetConfigByUe(int ueIndex)
     c->phyLocations = g_refConfig->phyLocations;
     c->velocity = g_refConfig->velocity;
     c->wifi = g_refConfig->wifi;
+    c->staticIP = g_refConfig->staticIP;
     if (c->supi.has_value())
         IncrementNumber(c->supi->value, ueIndex);
     if (c->imei.has_value())

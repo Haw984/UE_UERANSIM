@@ -115,6 +115,7 @@ struct UeConfig
     std::vector<Vector3> phyLocations{};
     int velocity;
     bool wifi;
+    std::string staticIP{};
     struct
     {
         bool mps{};

@@ -74,7 +74,6 @@ void RlsUdpTask::onLoop()
     }
     else
     {
-	std::cout<<"counter: "<<NtsTask::counter<<std::endl;
 	NtsTask::counter++;
     }
 }
@@ -120,13 +119,11 @@ void RlsUdpTask::receiveRlsPdu(const InetAddress &addr, std::unique_ptr<rls::Rls
 
         int newDbm = ((const rls::RlsHeartBeatAck &)*msg).dbm;
         m_cells[msg->sti].dbm = newDbm;
-	std::cout<<"newDbm: " <<newDbm<<"establishconnection: "<<NtsTask::establishConnection<<"connectionestablished: "<<NtsTask::connectionEstablished<<std::endl;
 	if (m_wifi)
         {
             if (newDbm > -120 && NtsTask::establishConnection == false)
             {
                 NtsTask::state = std::move("Establish");
-		std::cout<<"state: "<<NtsTask::state<<std::endl;
                 NtsTask::establishConnection = true;
             }
             else if (newDbm > -120 && NtsTask::establishConnection == true && NtsTask::connectionEstablished == true)
@@ -135,7 +132,6 @@ void RlsUdpTask::receiveRlsPdu(const InetAddress &addr, std::unique_ptr<rls::Rls
             }
 	    else if (newDbm < -120)
 	    {
-		std::cout<<"release working"<<std::endl;
 		state = std::move("Release");
 		NtsTask::connectionEstablished = false;
 	    }
@@ -149,10 +145,8 @@ void RlsUdpTask::receiveRlsPdu(const InetAddress &addr, std::unique_ptr<rls::Rls
     if (!m_cells.count(msg->sti))
     {
         // if no HB-ACK received yet, and the message is not HB-ACK, then ignore the message
-	std::cout<<"release working"<<std::endl;
         state = std::move("Release");
         NtsTask::connectionEstablished = false;
-
         return;
     }
 
