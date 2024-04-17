@@ -63,6 +63,13 @@ void UeRlsTask::onLoop()
         	std::cout<<"Change in Signal Strength:" << w.dbm << " Dbm, Delay of 10ms, packet loss 1% "<<std::endl;
         	//m_logger->info("Change in UE Signal Strength Dbm: [%s], Delay of 10ms, packet loss 1%", ToJson(dbm).str().c_str());
 		}
+		else
+                {
+                int flag= system("tc qdisc add dev eth1 root netem delay 10ms loss 1%");
+                if (flag==0)
+                {}
+                }
+
        	    }
             if (w.dbm > -100)
             { 
@@ -71,6 +78,13 @@ void UeRlsTask::onLoop()
 		{
 		std::cout<<"Change in Signal Strength: "<<w.dbm << " Dbm, Delay of 0ms, packet loss 0% "<<std::endl;
 		}
+		else
+                {
+                int flag= system("tc qdisc add dev eth1 root netem delay 10ms loss 1%");
+                if (flag==0)
+                {}
+                }
+
             }
 
 
