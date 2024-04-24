@@ -129,6 +129,11 @@ class NtsTask
     static std::string state;
     static bool establishConnection;
     static int counter;
+    struct wifiAp {
+        std::vector<std::string> ipv4address;
+        std::vector<int> dbmWifi;
+        std::vector<std::string> additionalInfo;
+    }; static wifiAp apSelection;
     NtsTask() = default;
 
     virtual ~NtsTask() = default;

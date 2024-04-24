@@ -21,6 +21,16 @@
 #include <string>
 #include <stdexcept>
 
+std::vector<int> findAllMaintainIndices() {
+    std::vector<int> maintainIndices;
+    for (size_t i = 0; i < NtsTask::apSelection.additionalInfo.size(); ++i) {
+        if (NtsTask::apSelection.additionalInfo[i] == "Maintain") {
+            maintainIndices.push_back(i);
+        }
+    }
+    return maintainIndices;
+}
+
 std::vector<unsigned char> ip_to_bytes(const std::string& ip_address) 
 {
     std::vector<unsigned char> bytes;
@@ -35,10 +45,30 @@ std::vector<unsigned char> ip_to_bytes(const std::string& ip_address)
         unsigned char byte = static_cast<unsigned char>(std::stoi(octet));
         bytes.push_back(byte);
     }
-  
   return bytes;
 }
 
+// Function to execute a command
+int execute_command(const std::string& command) {
+    return system(command.c_str());
+}
+
+// Function to build the command
+std::string build_command(const std::string& base_cmd,  const std::string& target_network, const std::string interface) {
+    return base_cmd +" via " + target_network + " dev "+ interface ;
+}
+
+// Function to add  route
+int route(const std::string& target_network, const std::string interface) {
+    std::string cmd = build_command("ip route add default", target_network, interface);
+    return execute_command(cmd);
+}
+// Function to delete route
+
+int delete_route(const std::string& target_network, const std::string interface){
+    std::string cmd = build_command("ip route del default ",target_network, interface);
+    return execute_command(cmd);
+}
 
 static constexpr const int SWITCH_OFF_TIMER_ID = 1;
 static constexpr const int SWITCH_OFF_DELAY = 500;
@@ -53,7 +83,6 @@ UeAppTask::UeAppTask(TaskBase *base) : m_base{base}
 
 void UeAppTask::onStart()
 {
-    std::cout<<"Static IP: "<<m_base->config->staticIP<< std::endl;
     std::string ip_address = m_base->config->staticIP;
     try {
 	bytes = ip_to_bytes(ip_address);
@@ -91,28 +120,45 @@ void UeAppTask::onLoop()
         OctetString address(std::move(bytes)); // Use std::move to cast bytes to an rvalue reference
         nas::IEPduAddress pduAddress(wifiSession.sessionType, std::move(address)); // Wrap OctetString in IEPduA>
         wifiSession.pduAddress = std::move(pduAddress); // Assign IEPduAddress to pduAddress member of session
-	if ( state == "Establish")
+	std::vector<int> maintainIndices = findAllMaintainIndices();
+        if (!maintainIndices.empty() )
+        {
+             std::cout << "Indices where 'Maintain' occurs:" << std::endl;
+             for (int maintainIndex : maintainIndices) {
+             std::cout << maintainIndex <<std::endl;
+             if (maintainIndex > 0) {
+             NtsTask::apSelection.additionalInfo[maintainIndex] = "Establish"; // Assign empty string to the element
+             int status = system("ip route del default");
+             if (status == 0) {
+                     m_logger->info("Deleted previous connection");
+                     }
+             }
+             }
+        }
+	if ( NtsTask::apSelection.additionalInfo[0] == "Establish")
 	{
+        int status = route(NtsTask::apSelection.ipv4address[0], m_base->config->interface);
+	std::cout<<m_base->config->interface<<std::endl;
+	std::cout<<status;
+        if (status == 0)
+        {
+                m_logger->info("Building Connection.");
+        }
         setupTunInterface(&wifiSession); // Pass the address of session to setupTunInterface
 	NtsTask::connectionEstablished = true;
-	NtsTask::state =  std::move("Maintain");
+	NtsTask::apSelection.additionalInfo[0] =  std::move("Maintain");
 	}
-	else if (state == "Maintain" && NtsTask::counter < 10)
+	else if (NtsTask::apSelection.additionalInfo[0] == "Maintain" && NtsTask::counter < 10)
 	{
 		return;
 	}
-	else if (state == "Release")
-	{
-	    if (m_tunTasks[wifiSession.psi] != nullptr)
-            {
-		m_tunTasks[wifiSession.psi]->quit();
-                delete m_tunTasks[wifiSession.psi];
-                m_tunTasks[wifiSession.psi] = nullptr;
-            }
-            state == "";
-	}
 	else if (NtsTask::counter > SWITCH_OFF_DELAY)
 	{
+	    int status = delete_route(NtsTask::apSelection.ipv4address[0], m_base->config->interface);
+            if (status == 0)
+            {
+                m_logger->info("Time out removing Connection.");
+            }
 	    if (m_tunTasks[wifiSession.psi] != nullptr)
             {
                 m_tunTasks[wifiSession.psi]->quit();
@@ -123,6 +169,22 @@ void UeAppTask::onLoop()
 	    NtsTask::establishConnection = false;
 	    NtsTask::connectionEstablished = false;
 	}
+        else
+        {
+            int status = system("ip route del default");
+            if (status == 0)
+            {
+                m_logger->info("Removing Connection.");
+            }
+            if (m_tunTasks[wifiSession.psi] != nullptr)
+            {
+                m_tunTasks[wifiSession.psi]->quit();
+                delete m_tunTasks[wifiSession.psi];
+                m_tunTasks[wifiSession.psi] = nullptr;
+            }
+           //NtsTask::apSelection.additionalInfo[0] = "";
+        }
+
 	}
     return;
     }

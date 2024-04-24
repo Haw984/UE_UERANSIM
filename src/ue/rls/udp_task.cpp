@@ -17,6 +17,10 @@
 #include <ue/nts.hpp>
 #include <utils/common.hpp>
 #include <utils/constants.hpp>
+#include <numeric>
+#include <arpa/inet.h>
+#include <cstring>
+#include <stdexcept> // For std::runtime_error
 
 static constexpr const int BUFFER_SIZE = 16384;
 static constexpr const int LOOP_PERIOD = 1000;
@@ -27,6 +31,124 @@ bool NtsTask::connectionEstablished = false;
 bool NtsTask::establishConnection = false;
 std::string NtsTask::state = "";
 int NtsTask::counter = 0;
+// Static member of wifiAp struct
+NtsTask::wifiAp NtsTask::apSelection= {{},{},{}};
+
+std::string getIPv4AddressString(const InetAddress &inetAddress) {
+  if (inetAddress.getIpVersion() != 4) {
+    return ""; // Not an IPv4 address
+  }
+
+  // Check if getSockAddr returns a null pointer (potential error)
+  const sockaddr *addr = inetAddress.getSockAddr();
+  if (addr == nullptr) {
+    throw std::runtime_error("InetAddress object does not contain a valid address");
+  }
+
+  // Cast to const sockaddr_in* only if the IP version is 4
+  const sockaddr_in *sin = reinterpret_cast<const sockaddr_in *>(addr);
+
+  char ipString[INET_ADDRSTRLEN]; // Buffer to store string address
+  if (inet_ntop(AF_INET, &(sin->sin_addr), ipString, INET_ADDRSTRLEN) == nullptr) {
+    // Handle inet_ntop error (unlikely, but possible)
+    throw std::runtime_error("Error converting address to string");
+  }
+
+  return std::string(ipString);
+}
+
+void printAPSelection() {
+    std::cout << "AP Selection List:" << std::endl;
+    for (size_t i = 0; i < NtsTask::apSelection.ipv4address.size(); ++i) {
+        std::cout << "IPv4 Address: " << NtsTask::apSelection.ipv4address[i] << std::endl;
+        std::cout << "dBm: " << NtsTask::apSelection.dbmWifi[i] << std::endl;
+        std::cout << "Additional Info: " << NtsTask::apSelection.additionalInfo[i] << std::endl;
+        std::cout << "---------------------" << std::endl;
+    }
+}
+
+
+    // Function to add or update IP address, dBm, and additional info in a wifiAp struct
+    void addOrUpdateIPAddress(const std::string& ipv4Address, int newDbm, const std::string& additionalInfo) {
+        // Check if the IPv4 address already exists in the vector
+        auto it = std::find(NtsTask::apSelection.ipv4address.begin(), NtsTask::apSelection.ipv4address.end(), ipv4Address);
+
+        if (it != NtsTask::apSelection.ipv4address.end()) {
+            // If address exists, find its index
+            size_t index = std::distance(NtsTask::apSelection.ipv4address.begin(), it);
+            // Update dBm and additional info at the found index
+            NtsTask::apSelection.dbmWifi[index] = newDbm;
+            NtsTask::apSelection.additionalInfo[index] = additionalInfo;
+            std::cout << "Updated dBm and additional info for IP address " << ipv4Address << std::endl;
+        } else {
+            // If address doesn't exist, add it to the vectors
+            NtsTask::apSelection.ipv4address.push_back(ipv4Address);
+            NtsTask::apSelection.dbmWifi.push_back(newDbm);
+            NtsTask::apSelection.additionalInfo.push_back(additionalInfo);
+            std::cout << "Added IP address " << ipv4Address << " with dBm " << newDbm << " and additional info " << additionalInfo << std::endl;
+        }
+    }
+
+ // Function to sort IP addresses based on dBm values and additional info
+void sortByDBM() {
+        std::vector<size_t> indices(NtsTask::apSelection.ipv4address.size());
+        std::iota(indices.begin(), indices.end(), 0); // Initialize indices to 0, 1, 2, ..., n-1
+
+        // Custom sorting function based on dBm values and additional info
+        std::sort(indices.begin(), indices.end(),
+                  [](size_t a, size_t b) {
+                      // First, compare dBm values
+                      if (NtsTask::apSelection.dbmWifi[a] != NtsTask::apSelection.dbmWifi[b]) {
+                          return NtsTask::apSelection.dbmWifi[a] > NtsTask::apSelection.dbmWifi[b];
+                      }
+                      // If dBm values are the same, compare additional info
+                      // If additional info is "Establish", it should come first
+                      if (NtsTask::apSelection.additionalInfo[a] == "Maintain" && NtsTask::apSelection.additionalInfo[b] != "Maintain") {
+                          return true;
+                      }
+                      return false; // If additional info is not "Establish" or both are "Establish", maintain order
+                  });
+
+        // Rearrange IP addresses, dBm values, and additional info based on sorted indices
+        std::vector<std::string> sortedIPv4;
+        std::vector<int> sortedDBM;
+        std::vector<std::string> sortedAdditionalInfo;
+
+        for (size_t i = 0; i < indices.size(); ++i) {
+            sortedIPv4.push_back(NtsTask::apSelection.ipv4address[indices[i]]);
+            sortedDBM.push_back(NtsTask::apSelection.dbmWifi[indices[i]]);
+            sortedAdditionalInfo.push_back(NtsTask::apSelection.additionalInfo[indices[i]]);
+        }
+
+        // Update apSelection with sorted data
+        NtsTask::apSelection.ipv4address = sortedIPv4;
+        NtsTask::apSelection.dbmWifi = sortedDBM;
+        NtsTask::apSelection.additionalInfo = sortedAdditionalInfo;
+    }
+
+
+/*std::vector<int> findAllMaintainIndices() {
+    std::vector<int> maintainIndices;
+    for (size_t i = 0; i < NtsTask::apSelection.additionalInfo.size(); ++i) {
+        if (NtsTask::apSelection.additionalInfo[i] == "Maintain") {
+            maintainIndices.push_back(i);
+        }
+    }
+    return maintainIndices;
+}*/
+
+int findMaintainIndex(const std::string& ipv4Address) {
+    auto it = std::find(NtsTask::apSelection.ipv4address.begin(), NtsTask::apSelection.ipv4address.end(), ipv4Address);
+    if (it != NtsTask::apSelection.ipv4address.end()) {
+        size_t index = std::distance(NtsTask::apSelection.ipv4address.begin(), it);
+        if (index < NtsTask::apSelection.additionalInfo.size() && NtsTask::apSelection.additionalInfo[index] == "Maintain") {
+            return index;
+        }
+    }
+    return -1; // "Maintain" not found for the given IPv4 address
+}
+
+
 namespace nr::ue
 {
 
@@ -121,20 +243,56 @@ void RlsUdpTask::receiveRlsPdu(const InetAddress &addr, std::unique_ptr<rls::Rls
         m_cells[msg->sti].dbm = newDbm;
 	if (m_wifi)
         {
-            if (newDbm > -120 && NtsTask::establishConnection == false)
+	    std::string ipv4Address = getIPv4AddressString(addr);
+            if (newDbm > -120)
             {
-                NtsTask::state = std::move("Establish");
+		int index = findMaintainIndex(ipv4Address);
+		std::cout<<"index: "<<index<<std::endl;
+		if(index != -1){
+		addOrUpdateIPAddress(ipv4Address, newDbm, "Maintain");}
+		else {
+		addOrUpdateIPAddress(ipv4Address, newDbm, "Establish");}
                 NtsTask::establishConnection = true;
-            }
-            else if (newDbm > -120 && NtsTask::establishConnection == true && NtsTask::connectionEstablished == true)
-            {
-                state = std::move("Maintain");
+		sortByDBM();
             }
 	    else if (newDbm < -120)
 	    {
-		state = std::move("Release");
-		NtsTask::connectionEstablished = false;
+		//sortByDBM();
+		//printAPSelection();
+            	/*std::vector<int> maintainIndices = findAllMaintainIndices();
+            	if (!maintainIndices.empty() )
+            	{
+                std::cout << "Indices where 'Maintain' occurs:" << std::endl;
+                for (int maintainIndex : maintainIndices) {
+                	std::cout << maintainIndex <<std::endl;
+                	if (maintainIndex > 0) {
+                	NtsTask::apSelection.additionalInfo[maintainIndex] = ""; // Assign empty string to the element
+                	int status = system("ip route del default");
+                	if (status == 0) {
+                        	m_logger->info("Deleted previous connection");
+                        }
+                	}
+                }
+            	}*/
+		std::cout<<"DBm is less then 120"<<std::endl;
+		addOrUpdateIPAddress(ipv4Address, newDbm, "");
 	    }
+	    printAPSelection();
+	    /*std::vector<int> maintainIndices = findAllMaintainIndices();
+       	    if (!maintainIndices.empty() )
+            {
+            	std::cout << "Indices where 'Maintain' occurs:" << std::endl;
+            	for (int maintainIndex : maintainIndices) {
+                std::cout << maintainIndex <<std::endl;
+	    	if (maintainIndex > 0) {
+    		NtsTask::apSelection.additionalInfo[maintainIndex] = ""; // Assign empty string to the element
+    		int status = system("ip route del default");
+    		if (status == 0) {
+        		m_logger->info("Deleted previous connection");
+    			}
+		}
+		}
+	    }*/
         }
 	NtsTask::counter = 0;
         if (oldDbm != newDbm)
@@ -190,7 +348,7 @@ void RlsUdpTask::heartbeatCycle(uint64_t time, const Vector3 &simPos)
     }
 
     for (auto cell : toRemove)
-        onSignalChangeOrLost(cell.second);
+       { onSignalChangeOrLost(cell.second);}
 
     for (auto &addr : m_searchSpace)
     {

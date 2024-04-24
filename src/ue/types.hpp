@@ -116,6 +116,7 @@ struct UeConfig
     int velocity;
     bool wifi;
     std::string staticIP{};
+    std::string interface{};
     struct
     {
         bool mps{};
