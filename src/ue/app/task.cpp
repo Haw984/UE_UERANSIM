@@ -138,8 +138,6 @@ void UeAppTask::onLoop()
 	if ( NtsTask::apSelection.additionalInfo[0] == "Establish")
 	{
         int status = route(NtsTask::apSelection.ipv4address[0], m_base->config->interface);
-	std::cout<<m_base->config->interface<<std::endl;
-	std::cout<<status;
         if (status == 0)
         {
                 m_logger->info("Building Connection.");

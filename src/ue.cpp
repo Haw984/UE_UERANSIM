@@ -245,7 +245,6 @@ static nr::ue::UeConfig *ReadConfigYaml()
         result->uacAcc.cls14 = yaml::GetBool(config["uacAcc"], "class14");
         result->uacAcc.cls15 = yaml::GetBool(config["uacAcc"], "class15");
     }
-	std::cout<<"done";
     if (yaml::HasField(config, "phyLocation")) 
     {
     const auto& phyLocation = config["phyLocation"];
@@ -268,13 +267,13 @@ static nr::ue::UeConfig *ReadConfigYaml()
             // Construct Vector3 object only if all values are integers
             result->phyLocations.push_back(Vector3(x, y, z));
         }
-        else 
-        {
-            // Handle error condition, such as skipping invalid values or logging an error
-		std::cout<<"Error because of integer values";
-        }
     }
     }
+    if (yaml::HasField(config, "phyLocation"))
+    {
+        result->mobPattern = yaml::GetString(config,"pattern");
+    }
+
     if (yaml::HasField(config, "velocity"))
     {
         result->velocity=config["velocity"].as<int>();
@@ -283,7 +282,6 @@ static nr::ue::UeConfig *ReadConfigYaml()
     if (yaml::HasField(config, "wifi"))
     {
 	result->wifi=config["wifi"].as<bool>();
-	std::cout<<"Wifi AP: "<<result->wifi<<std::endl;
     }
     if (yaml::HasField(config, "wifi"))
     {
@@ -416,6 +414,7 @@ static nr::ue::UeConfig *GetConfigByUe(int ueIndex)
     c->uacAic = g_refConfig->uacAic;
     c->uacAcc = g_refConfig->uacAcc;
     c->phyLocations = g_refConfig->phyLocations;
+    c->mobPattern = g_refConfig->mobPattern;
     c->velocity = g_refConfig->velocity;
     c->wifi = g_refConfig->wifi;
     c->staticIP = g_refConfig->staticIP;

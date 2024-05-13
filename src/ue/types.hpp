@@ -117,6 +117,7 @@ struct UeConfig
     bool wifi;
     std::string staticIP{};
     std::string interface{};
+    std::string mobPattern{};
     struct
     {
         bool mps{};

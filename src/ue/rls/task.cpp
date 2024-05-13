@@ -23,7 +23,7 @@ UeRlsTask::UeRlsTask(TaskBase *base) : m_base{base}
 
     m_shCtx = new RlsSharedContext();
     m_shCtx->sti = Random::Mixed(base->config->getNodeName()).nextL();
-    m_udpTask = new RlsUdpTask(base, m_shCtx, base->config->gnbSearchList, base->config->phyLocations,
+    m_udpTask = new RlsUdpTask(base, m_shCtx, base->config->gnbSearchList, base->config->phyLocations, base->config->mobPattern,
     base->config->velocity, base->config->wifi);
     m_ctlTask = new RlsControlTask(base, m_shCtx);
 
@@ -56,7 +56,7 @@ void UeRlsTask::onLoop()
             m_base->rrcTask->push(std::move(m));
     	    if (w.dbm < -100)
             { 
-		int check = system ("tc qdisc show dev eth1");
+		//int check = system ("tc qdisc show dev eth1");
         	int flag= system("tc qdisc change dev eth1 root netem delay 10ms loss 1%");
 		if (flag == 0)
 		{

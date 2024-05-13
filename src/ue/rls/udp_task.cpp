@@ -126,17 +126,6 @@ void sortByDBM() {
         NtsTask::apSelection.additionalInfo = sortedAdditionalInfo;
     }
 
-
-/*std::vector<int> findAllMaintainIndices() {
-    std::vector<int> maintainIndices;
-    for (size_t i = 0; i < NtsTask::apSelection.additionalInfo.size(); ++i) {
-        if (NtsTask::apSelection.additionalInfo[i] == "Maintain") {
-            maintainIndices.push_back(i);
-        }
-    }
-    return maintainIndices;
-}*/
-
 int findMaintainIndex(const std::string& ipv4Address) {
     auto it = std::find(NtsTask::apSelection.ipv4address.begin(), NtsTask::apSelection.ipv4address.end(), ipv4Address);
     if (it != NtsTask::apSelection.ipv4address.end()) {
@@ -152,9 +141,9 @@ int findMaintainIndex(const std::string& ipv4Address) {
 namespace nr::ue
 {
 
-RlsUdpTask::RlsUdpTask(TaskBase *base, RlsSharedContext *shCtx, const std::vector<std::string> &searchSpace, std::vector<Vector3> simPos, const int velocity, const bool wifi)
+RlsUdpTask::RlsUdpTask(TaskBase *base, RlsSharedContext *shCtx, const std::vector<std::string> &searchSpace, std::vector<Vector3> simPos, const std::string mobPattern,const int velocity, const bool wifi)
     : m_server{}, m_ctlTask{}, m_shCtx{shCtx}, m_searchSpace{}, m_cells{}, m_cellIdToSti{}, m_lastLoop{},m_simPos{simPos},
-      m_cellIdCounter{},m_velocity{velocity}, m_wifi{wifi}
+      m_mobPattern{mobPattern}, m_cellIdCounter{}, m_velocity{velocity}, m_wifi{wifi}
 {
     m_logger = base->logBase->makeUniqueLogger(base->config->getLoggerPrefix() + "rls-udp");
 
@@ -174,11 +163,29 @@ void RlsUdpTask::onLoop()
     auto current = utils::CurrentTimeMillis();
     if (current - m_lastLoop > velocity_in_time)
     {
-        m_lastLoop = current;
-        // Increment the index to move to the next position in m_simPos
-        m_simPosIndex = (m_simPosIndex + 1) % m_simPos.size();
-        // Pass the corresponding Vector3 to heartbeatCycle
-        heartbeatCycle(current, m_simPos[m_simPosIndex]);
+      if(m_mobPattern == "linear")
+      {
+          m_lastLoop = current;
+          // Pass the corresponding Vector3 to heartbeatCycle
+	  int lastIndex = m_simPos.size() - 1;
+	  if (m_simPosIndex == lastIndex)
+	  {
+	     heartbeatCycle(current, m_simPos[lastIndex]);
+	     m_simPosIndex = lastIndex;
+	  }
+	  else
+	  {
+	     heartbeatCycle(current, m_simPos[m_simPosIndex]);
+	     m_simPosIndex++;
+	  }
+      }
+      else
+      {
+	  m_lastLoop = current;
+          // Increment the index to move to the next position in m_simPos and start again 
+          m_simPosIndex = (m_simPosIndex + 1) % m_simPos.size();
+          heartbeatCycle(current, m_simPos[m_simPosIndex]);
+      }
         //heartbeatCycle(current, m_simPos);
     }
 
@@ -257,43 +264,12 @@ void RlsUdpTask::receiveRlsPdu(const InetAddress &addr, std::unique_ptr<rls::Rls
             }
 	    else if (newDbm < -120)
 	    {
-		//sortByDBM();
-		//printAPSelection();
-            	/*std::vector<int> maintainIndices = findAllMaintainIndices();
-            	if (!maintainIndices.empty() )
-            	{
-                std::cout << "Indices where 'Maintain' occurs:" << std::endl;
-                for (int maintainIndex : maintainIndices) {
-                	std::cout << maintainIndex <<std::endl;
-                	if (maintainIndex > 0) {
-                	NtsTask::apSelection.additionalInfo[maintainIndex] = ""; // Assign empty string to the element
-                	int status = system("ip route del default");
-                	if (status == 0) {
-                        	m_logger->info("Deleted previous connection");
-                        }
-                	}
-                }
-            	}*/
 		std::cout<<"DBm is less then 120"<<std::endl;
 		addOrUpdateIPAddress(ipv4Address, newDbm, "");
+		sortByDBM();
 	    }
 	    printAPSelection();
-	    /*std::vector<int> maintainIndices = findAllMaintainIndices();
-       	    if (!maintainIndices.empty() )
-            {
-            	std::cout << "Indices where 'Maintain' occurs:" << std::endl;
-            	for (int maintainIndex : maintainIndices) {
-                std::cout << maintainIndex <<std::endl;
-	    	if (maintainIndex > 0) {
-    		NtsTask::apSelection.additionalInfo[maintainIndex] = ""; // Assign empty string to the element
-    		int status = system("ip route del default");
-    		if (status == 0) {
-        		m_logger->info("Deleted previous connection");
-    			}
-		}
-		}
-	    }*/
-        }
+	}
 	NtsTask::counter = 0;
         if (oldDbm != newDbm)
            {onSignalChangeOrLost(m_cells[msg->sti].cellId);}
@@ -337,7 +313,8 @@ void RlsUdpTask::heartbeatCycle(uint64_t time, const Vector3 &simPos)
     for (auto &cell : m_cells)
     {
         auto delta = time - cell.second.lastSeen;
-        if (delta >  RECEIVE_TIMEOUT + velocity_in_time + velocity_in_time + 100)
+	long unsigned int total_timeout = RECEIVE_TIMEOUT + 3 * velocity_in_time;
+        if (delta >  total_timeout)
             toRemove.insert({cell.first, cell.second.cellId});
     }
 

@@ -42,6 +42,7 @@ class RlsUdpTask : public NtsTask
     std::unordered_map<int, uint64_t> m_cellIdToSti;
     int64_t m_lastLoop;
     std::vector<Vector3> m_simPos;
+    std::string m_mobPattern;
     int m_cellIdCounter;
     int m_simPosIndex;
     int m_velocity;
@@ -51,7 +52,7 @@ class RlsUdpTask : public NtsTask
 
   public:
     explicit RlsUdpTask(TaskBase *base, RlsSharedContext* shCtx, const std::vector<std::string> &searchSpace, 
-    std::vector<Vector3> simPos, const int velocity, const bool wifi);
+    std::vector<Vector3> simPos, const std::string m_mobPattern, const int velocity, const bool wifi);
     ~RlsUdpTask() override = default;
 
   protected:
