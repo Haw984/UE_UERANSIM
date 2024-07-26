@@ -68,26 +68,26 @@ void printAPSelection() {
 }
 
 
-    // Function to add or update IP address, dBm, and additional info in a wifiAp struct
-    void addOrUpdateIPAddress(const std::string& ipv4Address, int newDbm, const std::string& additionalInfo) {
-        // Check if the IPv4 address already exists in the vector
-        auto it = std::find(NtsTask::apSelection.ipv4address.begin(), NtsTask::apSelection.ipv4address.end(), ipv4Address);
+// Function to add or update IP address, dBm, and additional info in a wifiAp struct
+void addOrUpdateIPAddress(const std::string& ipv4Address, int newDbm, const std::string& additionalInfo) {
+    // Check if the IPv4 address already exists in the vector
+    auto it = std::find(NtsTask::apSelection.ipv4address.begin(), NtsTask::apSelection.ipv4address.end(), ipv4Address);
 
-        if (it != NtsTask::apSelection.ipv4address.end()) {
-            // If address exists, find its index
-            size_t index = std::distance(NtsTask::apSelection.ipv4address.begin(), it);
-            // Update dBm and additional info at the found index
-            NtsTask::apSelection.dbmWifi[index] = newDbm;
-            NtsTask::apSelection.additionalInfo[index] = additionalInfo;
-            std::cout << "Updated dBm and additional info for IP address " << ipv4Address << std::endl;
-        } else {
-            // If address doesn't exist, add it to the vectors
-            NtsTask::apSelection.ipv4address.push_back(ipv4Address);
-            NtsTask::apSelection.dbmWifi.push_back(newDbm);
-            NtsTask::apSelection.additionalInfo.push_back(additionalInfo);
-            std::cout << "Added IP address " << ipv4Address << " with dBm " << newDbm << " and additional info " << additionalInfo << std::endl;
-        }
+    if (it != NtsTask::apSelection.ipv4address.end()) {
+        // If address exists, find its index
+        size_t index = std::distance(NtsTask::apSelection.ipv4address.begin(), it);
+        // Update dBm and additional info at the found index
+        NtsTask::apSelection.dbmWifi[index] = newDbm;
+        NtsTask::apSelection.additionalInfo[index] = additionalInfo;
+        std::cout << "Updated dBm and additional info for IP address " << ipv4Address << std::endl;
+    } else {
+        // If address doesn't exist, add it to the vectors
+        NtsTask::apSelection.ipv4address.push_back(ipv4Address);
+        NtsTask::apSelection.dbmWifi.push_back(newDbm);
+        NtsTask::apSelection.additionalInfo.push_back(additionalInfo);
+        std::cout << "Added IP address " << ipv4Address << " with dBm " << newDbm << " and additional info " << additionalInfo << std::endl;
     }
+}
 
  // Function to sort IP addresses based on dBm values and additional info
 void sortByDBM() {
@@ -161,34 +161,58 @@ void RlsUdpTask::onStart()
 void RlsUdpTask::onLoop()
 {
     auto current = utils::CurrentTimeMillis();
-    if (current - m_lastLoop > velocity_in_time)
+    if (velocity_in_time == 0)
     {
-      if(m_mobPattern == "linear")
-      {
-          m_lastLoop = current;
-          // Pass the corresponding Vector3 to heartbeatCycle
-	  int lastIndex = m_simPos.size() - 1;
-	  if (m_simPosIndex == lastIndex)
-	  {
-	     heartbeatCycle(current, m_simPos[lastIndex]);
-	     m_simPosIndex = lastIndex;
-	  }
-	  else
-	  {
-	     heartbeatCycle(current, m_simPos[m_simPosIndex]);
-	     m_simPosIndex++;
-	  }
-      }
-      else
-      {
-	  m_lastLoop = current;
-          // Increment the index to move to the next position in m_simPos and start again 
-          m_simPosIndex = (m_simPosIndex + 1) % m_simPos.size();
-          heartbeatCycle(current, m_simPos[m_simPosIndex]);
-      }
-        //heartbeatCycle(current, m_simPos);
-    }
+        if (current - m_lastLoop > LOOP_PERIOD)
+        {
+            m_lastLoop = current;
+            heartbeatCycle(current, m_simPos);
+        }
 
+        uint8_t buffer[BUFFER_SIZE];
+        InetAddress peerAddress;
+
+        int size = m_server->Receive(buffer, BUFFER_SIZE, RECEIVE_TIMEOUT, peerAddress);
+        if (size > 0)
+        {
+            auto rlsMsg = rls::DecodeRlsMessage(OctetView{buffer, static_cast<size_t>(size)});
+            if (rlsMsg == nullptr)
+                m_logger->err("Unable to decode RLS message");
+            else
+                receiveRlsPdu(peerAddress, std::move(rlsMsg));
+        }
+
+    }
+    else 
+    {
+        if (current - m_lastLoop > velocity_in_time)
+        {
+        if(m_mobPattern == "linear")
+        {
+            m_lastLoop = current;
+            // Pass the corresponding Vector3 to heartbeatCycle
+        int lastIndex = m_simPos.size() - 1;
+        if (m_simPosIndex == lastIndex)
+        {
+            heartbeatCycle(current, m_simPos[lastIndex]);
+            m_simPosIndex = lastIndex;
+        }
+        else
+        {
+            heartbeatCycle(current, m_simPos[m_simPosIndex]);
+            m_simPosIndex++;
+        }
+        }
+        else
+        {
+        m_lastLoop = current;
+            // Increment the index to move to the next position in m_simPos and start again 
+            m_simPosIndex = (m_simPosIndex + 1) % m_simPos.size();
+            heartbeatCycle(current, m_simPos[m_simPosIndex]);
+        }
+            //heartbeatCycle(current, m_simPos);
+        }
+    }
     uint8_t buffer[BUFFER_SIZE];
     InetAddress peerAddress;
 
@@ -361,9 +385,13 @@ int RlsUdpTask::speedTimeCalculation(const std::vector<Vector3> simPos, int velo
 
     double time;
     if (distance == 0) {
-        distance = 1;
         time = 0;
-    } else {
+    } 
+    else if (velocity == 0)
+    {
+        time = 0;
+    }    
+    else {
         double time_in_sec = distance / velocity;
         std::cout << "time in second: " << time_in_sec << std::endl;
         time = time_in_sec * 1000; // convert into millisecond
