@@ -283,7 +283,7 @@ static nr::ue::UeConfig *ReadConfigYaml()
     {
 	result->wifi=config["wifi"].as<bool>();
     }
-    if (yaml::HasField(config, "wifi"))
+    if (result->wifi)
     {
 	result->staticIP = yaml::GetString(config,"staticIP");
 	result->interface = yaml::GetString(config,"Interface");

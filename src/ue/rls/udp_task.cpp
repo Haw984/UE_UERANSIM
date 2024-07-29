@@ -166,7 +166,8 @@ void RlsUdpTask::onLoop()
         if (current - m_lastLoop > LOOP_PERIOD)
         {
             m_lastLoop = current;
-            heartbeatCycle(current, m_simPos);
+	     int lastIndex = m_simPos.size() - 1;
+            heartbeatCycle(current, m_simPos[lastIndex]);
         }
 
         uint8_t buffer[BUFFER_SIZE];
@@ -338,7 +339,7 @@ void RlsUdpTask::heartbeatCycle(uint64_t time, const Vector3 &simPos)
     {
         auto delta = time - cell.second.lastSeen;
 	long unsigned int total_timeout = RECEIVE_TIMEOUT + 3 * velocity_in_time;
-        if (delta >  total_timeout)
+        if (delta >  HEARTBEAT_THRESHOLD)
             toRemove.insert({cell.first, cell.second.cellId});
     }
 
