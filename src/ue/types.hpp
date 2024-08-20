@@ -603,6 +603,7 @@ struct ProcControl
 {
     std::optional<EInitialRegCause> initialRegistration{};
     std::optional<ERegUpdateCause> mobilityRegistration{};
+    //std::optional<ERegUpdateCause> pathSwitchRegistration{};
     std::optional<EServiceReqCause> serviceRequest{};
     std::optional<EDeregCause> deregistration{};
 };

@@ -96,7 +96,7 @@ void UeRrcTask::receiveRrcSetup(int cellId, const ASN_RRC_RRCSetup &msg)
     if (m_lastSetupReq != ERrcLastSetupRequest::SETUP_REQUEST)
     {
         // TODO
-        return;
+        //return;
     }
 
     auto *pdu = asn::New<ASN_RRC_UL_DCCH_Message>();

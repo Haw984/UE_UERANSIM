@@ -73,6 +73,20 @@ void NasMm::mobilityUpdatingRequired(ERegUpdateCause cause)
     triggerMmCycle();
 }
 
+/*void NasMm::pathSwitchRequired(ERegUpdateCause cause)
+{
+    if (m_mmState == EMmState::MM_NULL)
+        return;
+
+    if (m_procCtl.pathSwitchRegistration == cause)
+        return;
+
+    m_logger->debug("Path switch registration required due to [%s]", ToJson(cause).str().c_str());
+
+    AssignCause(m_procCtl.pathSwitchRegistration, cause);
+    triggerMmCycle();
+}*/
+
 void NasMm::serviceRequestRequired(EServiceReqCause cause)
 {
     if (m_mmState == EMmState::MM_NULL)

@@ -161,57 +161,32 @@ void RlsUdpTask::onStart()
 void RlsUdpTask::onLoop()
 {
     auto current = utils::CurrentTimeMillis();
-    if (velocity_in_time == 0)
+    if (current - m_lastLoop > LOOP_PERIOD)
     {
-        if (current - m_lastLoop > LOOP_PERIOD)
-        {
-            m_lastLoop = current;
-            heartbeatCycle(current, m_simPos);
-        }
-
-        uint8_t buffer[BUFFER_SIZE];
-        InetAddress peerAddress;
-
-        int size = m_server->Receive(buffer, BUFFER_SIZE, RECEIVE_TIMEOUT, peerAddress);
-        if (size > 0)
-        {
-            auto rlsMsg = rls::DecodeRlsMessage(OctetView{buffer, static_cast<size_t>(size)});
-            if (rlsMsg == nullptr)
-                m_logger->err("Unable to decode RLS message");
-            else
-                receiveRlsPdu(peerAddress, std::move(rlsMsg));
-        }
-
-    }
-    else 
-    {
-        if (current - m_lastLoop > velocity_in_time)
-        {
         if(m_mobPattern == "linear")
         {
             m_lastLoop = current;
             // Pass the corresponding Vector3 to heartbeatCycle
-        int lastIndex = m_simPos.size() - 1;
-        if (m_simPosIndex == lastIndex)
-        {
-            heartbeatCycle(current, m_simPos[lastIndex]);
-            m_simPosIndex = lastIndex;
+            int lastIndex = m_simPos.size() - 1;
+            if (m_simPosIndex == lastIndex)
+            {
+                heartbeatCycle(current, m_simPos[lastIndex]);
+                m_simPosIndex = lastIndex;
+            }
+            else
+            {
+                heartbeatCycle(current, m_simPos[m_simPosIndex]);
+                m_simPosIndex++;
+            }
         }
         else
         {
-            heartbeatCycle(current, m_simPos[m_simPosIndex]);
-            m_simPosIndex++;
-        }
-        }
-        else
-        {
-        m_lastLoop = current;
+            m_lastLoop = current;
             // Increment the index to move to the next position in m_simPos and start again 
             m_simPosIndex = (m_simPosIndex + 1) % m_simPos.size();
             heartbeatCycle(current, m_simPos[m_simPosIndex]);
         }
-            //heartbeatCycle(current, m_simPos);
-        }
+        //heartbeatCycle(current, m_simPos);
     }
     uint8_t buffer[BUFFER_SIZE];
     InetAddress peerAddress;
@@ -272,32 +247,32 @@ void RlsUdpTask::receiveRlsPdu(const InetAddress &addr, std::unique_ptr<rls::Rls
 
         int newDbm = ((const rls::RlsHeartBeatAck &)*msg).dbm;
         m_cells[msg->sti].dbm = newDbm;
-	if (m_wifi)
-        {
-	    std::string ipv4Address = getIPv4AddressString(addr);
-            if (newDbm > -120)
+        if (m_wifi)
             {
-		int index = findMaintainIndex(ipv4Address);
-		std::cout<<"index: "<<index<<std::endl;
-		if(index != -1){
-		addOrUpdateIPAddress(ipv4Address, newDbm, "Maintain");}
-		else {
-		addOrUpdateIPAddress(ipv4Address, newDbm, "Establish");}
-                NtsTask::establishConnection = true;
-		sortByDBM();
+            std::string ipv4Address = getIPv4AddressString(addr);
+                if (newDbm > -120)
+                {
+            int index = findMaintainIndex(ipv4Address);
+            std::cout<<"index: "<<index<<std::endl;
+            if(index != -1){
+            addOrUpdateIPAddress(ipv4Address, newDbm, "Maintain");}
+            else {
+            addOrUpdateIPAddress(ipv4Address, newDbm, "Establish");}
+                    NtsTask::establishConnection = true;
+            sortByDBM();
+                }
+            else if (newDbm < -120)
+            {
+            std::cout<<"DBm is less then 120"<<std::endl;
+            addOrUpdateIPAddress(ipv4Address, newDbm, "");
+            sortByDBM();
             }
-	    else if (newDbm < -120)
-	    {
-		std::cout<<"DBm is less then 120"<<std::endl;
-		addOrUpdateIPAddress(ipv4Address, newDbm, "");
-		sortByDBM();
-	    }
-	    printAPSelection();
-	}
-	NtsTask::counter = 0;
+            printAPSelection();
+        }
+	    NtsTask::counter = 0;
         if (oldDbm != newDbm)
            {onSignalChangeOrLost(m_cells[msg->sti].cellId);}
-	return;
+	    return;
     }
 
     if (!m_cells.count(msg->sti))
@@ -337,7 +312,7 @@ void RlsUdpTask::heartbeatCycle(uint64_t time, const Vector3 &simPos)
     for (auto &cell : m_cells)
     {
         auto delta = time - cell.second.lastSeen;
-	long unsigned int total_timeout = RECEIVE_TIMEOUT + 3 * velocity_in_time;
+	long unsigned int total_timeout = RECEIVE_TIMEOUT +  velocity_in_time;
         if (delta >  total_timeout)
             toRemove.insert({cell.first, cell.second.cellId});
     }

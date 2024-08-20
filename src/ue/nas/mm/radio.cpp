@@ -15,6 +15,7 @@
 #include <ue/nas/sm/sm.hpp>
 #include <ue/rrc/task.hpp>
 #include <utils/common.hpp>
+#include <iostream>
 
 namespace nr::ue
 {
@@ -116,6 +117,7 @@ void NasMm::performPlmnSelection()
 
 void NasMm::handleActiveCellChange(const Tai &prevTai)
 {
+    std::cout<<"Handle Active Cell Change Function is running"<<std::endl;
     if (m_cmState == ECmState::CM_CONNECTED)
     {
         // TODO
@@ -134,10 +136,13 @@ void NasMm::handleActiveCellChange(const Tai &prevTai)
         // "Additionally, the registration attempt counter shall be reset when the UE is in substate
         // 5GMM-DEREGISTERED.ATTEMPTING-REGISTRATION or 5GMM-REGISTERED.ATTEMPTING-REGISTRATION-UPDATE, and a new
         // tracking area is entered"
+	std::cout<<"prevTai != currentTai"<<std::endl;
+
         if (m_mmSubState == EMmSubState::MM_DEREGISTERED_ATTEMPTING_REGISTRATION ||
             m_mmSubState == EMmSubState::MM_REGISTERED_ATTEMPTING_REGISTRATION_UPDATE)
         {
             resetRegAttemptCounter();
+	    std::cout<<"counter reset run"<<std::endl;
         }
 
         // "Shall initiate a registration procedure for mobility and periodic registration update when the tracking area
@@ -148,8 +153,16 @@ void NasMm::handleActiveCellChange(const Tai &prevTai)
             currentCell.category == ECellCategory::SUITABLE_CELL)
         {
             mobilityUpdatingRequired(ERegUpdateCause::TAI_CHANGE_IN_ATT_UPD);
+	        std::cout<<"mobility update req run 1"<<std::endl;
         }
-
+        /*//Urwah Edition
+        else if (m_mmSubState == EMmSubState::MM_REGISTERED_ATTEMPTING_REGISTRATION_UPDATE && !m_timers->t3346.isRunning() &&
+                 currentCell.category == ECellCategory::SUITABLE_CELL)
+        {
+            //mobilityUpdatingRequired(ERegUpdateCause::TAI_CHANGE_IN_ATT_UPD);
+            //pathSwitchRequired(ERegUpdateCause::TAI_CHANGE_IN_ATT_UPD);
+            std::cout<<"Path switch registration update req run 1"<<std::endl;
+        }*/
         // "shall initiate an initial registration procedure when the tracking area of the serving cell has changed, if
         // timer T3346 is not running, the PLMN identity of the new cell is not in one of the forbidden PLMN lists and
         // the tracking area of the new cell is not in one of the lists of 5GS forbidden tracking areas"
@@ -157,6 +170,7 @@ void NasMm::handleActiveCellChange(const Tai &prevTai)
             currentCell.category == ECellCategory::SUITABLE_CELL)
         {
             initialRegistrationRequired(EInitialRegCause::TAI_CHANGE_IN_ATT_REG);
+	        std::cout<<"initial registration req run"<<std::endl;
         }
     }
 
@@ -166,11 +180,13 @@ void NasMm::handleActiveCellChange(const Tai &prevTai)
         // PLMN, if timer T3346 is running and the new PLMN is not equivalent to the PLMN where the UE started timer
         // T3346, the PLMN identity of the new cell is not in the forbidden PLMN lists, and the tracking area is not in
         // one of the lists of 5GS forbidden tracking areas"
+	std::cout<<"prevTai != currentTai2"<<std::endl;
         if (m_mmSubState == EMmSubState::MM_REGISTERED_ATTEMPTING_REGISTRATION_UPDATE && m_timers->t3346.isRunning() &&
             !m_storage->equivalentPlmnList->contains(currentTai.plmn) &&
             currentCell.category == ECellCategory::SUITABLE_CELL)
         {
             mobilityUpdatingRequired(ERegUpdateCause::PLMN_CHANGE_IN_ATT_UPD);
+	        std::cout<<"mobility update req run 2"<<std::endl;
         }
 
         // "shall initiate an initial registration procedure when entering a new PLMN, if timer T3346 is running and the
@@ -182,6 +198,7 @@ void NasMm::handleActiveCellChange(const Tai &prevTai)
             currentCell.category == ECellCategory::SUITABLE_CELL)
         {
             initialRegistrationRequired(EInitialRegCause::PLMN_CHANGE_IN_ATT_REG);
+	    std::cout<<"initial registration req run"<<std::endl;
         }
     }
 
@@ -206,12 +223,14 @@ void NasMm::handleRrcConnectionSetup()
 {
     // TODO
     switchCmState(ECmState::CM_CONNECTED);
+    std::cout<<"Handle Connection setup Function is running"<<std::endl;
 }
 
 void NasMm::handleRrcConnectionRelease()
 {
     // TODO
     switchCmState(ECmState::CM_IDLE);
+    //switchCmState(ERmState::RM_DEREGISTERED);
 }
 
 void NasMm::handleRrcEstablishmentFailure()
