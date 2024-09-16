@@ -26,9 +26,10 @@ class UeAppTask : public NtsTask
   private:
     TaskBase *m_base;
     std::unique_ptr<Logger> m_logger;
-
     std::array<TunTask *, 16> m_tunTasks{};
     ECmState m_cmState{};
+    std::string m_tunName;
+    std::unique_ptr<PduSession> m_pduSession;
 
     friend class UeCmdHandler;
 
@@ -45,6 +46,7 @@ class UeAppTask : public NtsTask
   private:
     void receiveStatusUpdate(NmUeStatusUpdate &msg);
     void setupTunInterface(const PduSession *pduSession);
+    //void releaseSession(std::unique_ptr<nr::ue::PduSession>  *pduSession);
 };
 
 } // namespace nr::ue

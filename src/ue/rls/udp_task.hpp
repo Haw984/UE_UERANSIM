@@ -66,6 +66,7 @@ class RlsUdpTask : public NtsTask
     void onSignalChangeOrLost(int cellId);
     void heartbeatCycle(uint64_t time, const Vector3 &simPos);
     int speedTimeCalculation(const std::vector<Vector3> simPos, int velocity);
+    int findCellWithHighestDbm(const std::unordered_map<uint64_t, CellInfo>& m_cells);
 
   public:
     void initialize(NtsTask *ctlTask);

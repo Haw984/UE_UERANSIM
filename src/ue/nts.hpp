@@ -20,6 +20,7 @@
 #include <utils/network.hpp>
 #include <utils/nts.hpp>
 #include <utils/octet_string.hpp>
+#include <lib/nas/msg.hpp>
 
 namespace nr::ue
 {
@@ -197,12 +198,14 @@ struct NmUeNasToApp : NtsMessage
     enum PR
     {
         PERFORM_SWITCH_OFF,
-        DOWNLINK_DATA_DELIVERY
+        DOWNLINK_DATA_DELIVERY,
+        RADIO_LINK_FAILURE
     } present;
 
     // DOWNLINK_DATA_DELIVERY
     int psi{};
     OctetString data;
+    
 
     explicit NmUeNasToApp(PR present) : NtsMessage(NtsMessageType::UE_NAS_TO_APP), present(present)
     {
@@ -229,12 +232,15 @@ struct NmUeNasToRls : NtsMessage
 {
     enum PR
     {
-        DATA_PDU_DELIVERY
+        DATA_PDU_DELIVERY,
+        CHANGE_SESSION
     } present;
 
     // DATA_PDU_DELIVERY
     int psi{};
     OctetString pdu;
+    //Urwah
+    nas::IEUeSecurityCapability ueSecurityCapability;
 
     explicit NmUeNasToRls(PR present) : NtsMessage(NtsMessageType::UE_NAS_TO_RLS), present(present)
     {
@@ -270,6 +276,7 @@ struct NmUeRlsToRls : NtsMessage
         RADIO_LINK_FAILURE,
         TRANSMISSION_FAILURE,
         ASSIGN_CURRENT_CELL,
+        CHANGE_SESSION,
     } present;
 
     // RECEIVE_RLS_MESSAGE
@@ -307,6 +314,7 @@ struct NmUeRlsToRls : NtsMessage
 
     // TRANSMISSION_FAILURE
     std::vector<rls::PduInfo> pduList;
+
 
     explicit NmUeRlsToRls(PR present) : NtsMessage(NtsMessageType::UE_RLS_TO_RLS), present(present)
     {

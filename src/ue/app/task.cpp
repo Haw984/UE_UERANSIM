@@ -225,6 +225,13 @@ void UeAppTask::onLoop()
             }
             break;
         }
+        /*case NmUeNasToApp::RADIO_LINK_FAILURE:{
+            std::cout<<"CHal gya larkay!!!!"<<std::endl;
+            if (m_pduSession != nullptr)
+            {
+                releaseSession(m_pduSession);
+            }
+        }*/
         }
         break;
     }
@@ -252,13 +259,22 @@ void UeAppTask::onLoop()
         break;
     }
 }
+//Urwah Edition
+/*void UeAppTask::releaseSession(const PduSession *pduSession)
+{
+    m_logger->info(" Releasing Tun configuration. ");
+
+    std::string ipAddress = utils::OctetStringToIp(pduSession->pduAddress->pduAddressInformation);
+    tun::RemoveTun(m_tunName, ipAddress);
+
+}*/
 
 void UeAppTask::receiveStatusUpdate(NmUeStatusUpdate &msg)
 {
     if (msg.what == NmUeStatusUpdate::SESSION_ESTABLISHMENT)
     {
         auto *session = msg.pduSession;
-
+        //m_pduSession = std::make_unique<PduSession>(session);
         setupTunInterface(session);
         return;
     }
@@ -268,6 +284,7 @@ void UeAppTask::receiveStatusUpdate(NmUeStatusUpdate &msg)
         if (m_tunTasks[msg.psi] != nullptr)
         {
             m_tunTasks[msg.psi]->quit();
+            std::cout<<"app/task.cpp: Session Release tun"<<std::endl;
             delete m_tunTasks[msg.psi];
             m_tunTasks[msg.psi] = nullptr;
         }
@@ -339,6 +356,7 @@ void UeAppTask::setupTunInterface(const PduSession *pduSession)
     auto *task = new TunTask(m_base, psi, fd);
     m_tunTasks[psi] = task;
     task->start();
+    m_tunName = allocatedName;
 
     m_logger->info("Connection setup for PDU session[%d] is successful, TUN interface[%s, %s] is up.", pduSession->psi,
                    allocatedName.c_str(), ipAddress.c_str());

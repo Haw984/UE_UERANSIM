@@ -16,7 +16,7 @@ namespace nr::ue
 
 void UeRrcTask::handleCellSignalChange(int cellId, int dbm)
 {
-    bool considerLost = dbm <= -120;
+    bool considerLost = dbm < -120;
     if (!m_cellDesc.count(cellId))
     {
         if (!considerLost)

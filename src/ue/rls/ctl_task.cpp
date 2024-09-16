@@ -7,8 +7,11 @@
 //
 
 #include "ctl_task.hpp"
+#include "asn/ngap/ASN_NGAP_QosFlowSetupRequestItem.h"
+#include <asn/ngap/ASN_NGAP_AssociatedQosFlowItem.h>
 
 #include <utils/common.hpp>
+#include <iostream>
 
 static constexpr const size_t MAX_PDU_COUNT = 128;
 static constexpr const int MAX_PDU_TTL = 3000;
@@ -67,6 +70,16 @@ void RlsControlTask::onLoop()
         case NmUeRlsToRls::ASSIGN_CURRENT_CELL:
             m_servingCell = w.cellId;
             break;
+        case NmUeRlsToRls::CHANGE_SESSION:{
+            std::cout<<"Message received by NmUeRlsToRls::CHANGE_SESSION"<<std::endl;
+            /*if(m_switchSession != nullptr){
+            std::cout<<"m_switchSession->psi"<<m_switchSession->psi<<std::endl;
+            rls::RlsSessionTransmission msg{m_shCtx->sti};
+            msg.payload = static_cast<uint32_t>(m_switchSession->psi);
+            msg.pduId = m_switchSession->ueId;
+            msg.m_pduSession = std::move(m_switchSession);
+            m_udpTask->send(msg.pduId, msg);}*/
+            break;}
         default:
             m_logger->unhandledNts(*msg);
             break;
@@ -138,6 +151,24 @@ void RlsControlTask::handleRlsMessage(int cellId, rls::RlsMessage &msg)
             m_logger->err("Unhandled RLS PDU type");
         }
     }
+    else if (msg.msgType == rls::EMessageType::SESSION_TRANSMISSION)
+    {
+        std::cout<<"Pohnch gya ha msg ctl_task tk!!"<<std::endl;
+        /*auto &m = (rls::RlsSessionTransmission &)msg;
+        m_switchSession = std::move(m.m_pduSession);
+        auto w = std::make_unique<NmUeRlsToRrc>(NmUeRlsToRrc::SIGNAL_CHANGED);
+        w->cellId = m_servingCell;
+        w->dbm = -140;
+        m_mainTask->push(std::move(w));*/
+        auto &m = (rls::RlsSessionTransmission &)msg;
+        rls::RlsSessionTransmission msg{m_shCtx->sti};
+        msg.payload = static_cast<uint32_t>(m.payload);
+        msg.pduId = m.pduId;
+        msg.m_pduSession = std::move(m.m_pduSession);
+        msg.m_ueSecurityCapability = std::move(m_ueSecurityCapability);
+        //int id = findCellWithHighestDbm(m_cells);
+        m_udpTask->send(cellId, msg);
+    }
     else
     {
         m_logger->err("Unhandled RLS message type");
@@ -161,6 +192,7 @@ void RlsControlTask::handleUplinkRrcDelivery(int cellId, uint32_t pduId, rrc::Rr
             m_pduMap.clear();
 
             auto w = std::make_unique<NmUeRlsToRls>(NmUeRlsToRls::RADIO_LINK_FAILURE);
+            std::cout<<"rls::ERlfCause::PDU_ID_EXISTS"<<std::endl;
             w->rlfCause = rls::ERlfCause::PDU_ID_EXISTS;
             m_mainTask->push(std::move(w));
             return;
@@ -172,6 +204,8 @@ void RlsControlTask::handleUplinkRrcDelivery(int cellId, uint32_t pduId, rrc::Rr
 
             auto w = std::make_unique<NmUeRlsToRls>(NmUeRlsToRls::RADIO_LINK_FAILURE);
             w->rlfCause = rls::ERlfCause::PDU_ID_FULL;
+            std::cout<<"rls::ERlfCause::PDU_ID_FULL"<<std::endl;
+
             m_mainTask->push(std::move(w));
             return;
         }

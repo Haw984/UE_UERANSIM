@@ -34,6 +34,7 @@ int NtsTask::counter = 0;
 // Static member of wifiAp struct
 NtsTask::wifiAp NtsTask::apSelection= {{},{},{}};
 
+
 std::string getIPv4AddressString(const InetAddress &inetAddress) {
   if (inetAddress.getIpVersion() != 4) {
     return ""; // Not an IPv4 address
@@ -161,7 +162,7 @@ void RlsUdpTask::onStart()
 void RlsUdpTask::onLoop()
 {
     auto current = utils::CurrentTimeMillis();
-    if (current - m_lastLoop > LOOP_PERIOD)
+    if (current - m_lastLoop > LOOP_PERIOD) //velocity_in_time
     {
         if(m_mobPattern == "linear")
         {
@@ -248,7 +249,7 @@ void RlsUdpTask::receiveRlsPdu(const InetAddress &addr, std::unique_ptr<rls::Rls
         int newDbm = ((const rls::RlsHeartBeatAck &)*msg).dbm;
         m_cells[msg->sti].dbm = newDbm;
         if (m_wifi)
-            {
+        {
             std::string ipv4Address = getIPv4AddressString(addr);
                 if (newDbm > -120)
                 {
@@ -284,7 +285,14 @@ void RlsUdpTask::receiveRlsPdu(const InetAddress &addr, std::unique_ptr<rls::Rls
     }
 
     auto w = std::make_unique<NmUeRlsToRls>(NmUeRlsToRls::RECEIVE_RLS_MESSAGE);
-    w->cellId = m_cells[msg->sti].cellId;
+    if (msg->msgType == rls::EMessageType::SESSION_TRANSMISSION)
+    {
+        w->cellId = findCellWithHighestDbm(m_cells);//cell id var is use to send packet to max dbm cell
+    }
+    else{
+        w->cellId = m_cells[msg->sti].cellId;
+    }
+    
     w->msg = std::move(msg);
     m_ctlTask->push(std::move(w));
 }
@@ -312,7 +320,7 @@ void RlsUdpTask::heartbeatCycle(uint64_t time, const Vector3 &simPos)
     for (auto &cell : m_cells)
     {
         auto delta = time - cell.second.lastSeen;
-	long unsigned int total_timeout = RECEIVE_TIMEOUT +  velocity_in_time;
+	    long unsigned int total_timeout = RECEIVE_TIMEOUT +  velocity_in_time;
         if (delta >  total_timeout)
             toRemove.insert({cell.first, cell.second.cellId});
     }
@@ -375,6 +383,22 @@ int RlsUdpTask::speedTimeCalculation(const std::vector<Vector3> simPos, int velo
 
     return time;
 
+}
+
+// Function to find the cell with the highest dBm
+int RlsUdpTask::findCellWithHighestDbm(const std::unordered_map<uint64_t, CellInfo>& m_cells) {
+    int maxDbm = std::numeric_limits<int>::min();  // Initialize to the lowest possible dBm value
+    int cellWithMaxDbm = -1;  // Initialize cell ID
+
+    // Iterate over the map to find the cell with the highest dBm
+    for (const auto& [key, cellInfo] : m_cells) {
+        if (cellInfo.dbm > maxDbm) {
+            maxDbm = cellInfo.dbm;
+            cellWithMaxDbm = cellInfo.cellId;
+        }
+    }
+
+    return cellWithMaxDbm;  // Return the cell ID with the highest dBm
 }
 
 } // namespace nr::ue

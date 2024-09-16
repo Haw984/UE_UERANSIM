@@ -11,6 +11,8 @@
 #include <algorithm>
 #include <lib/nas/utils.hpp>
 #include <ue/nas/task.hpp>
+//Urwah
+#include <ue/rls/task.hpp>
 
 namespace nr::ue
 {
@@ -121,6 +123,12 @@ EProcRc NasMm::sendInitialRegistration(EInitialRegCause regCause)
     m_timers->t3510.start();
     m_timers->t3502.stop();
     m_timers->t3511.stop();
+
+    //Urwah
+    auto m = std::make_unique<NmUeNasToRls>(NmUeNasToRls::CHANGE_SESSION);
+    //nas::IEUeSecurityCapability securityCap = createSecurityCapabilityIe();
+    m->ueSecurityCapability = createSecurityCapabilityIe();
+    m_base->rlsTask->push(std::move(m));
 
     return EProcRc::OK;
 }
@@ -256,11 +264,11 @@ EProcRc NasMm::sendMobilityRegistration(ERegUpdateCause updateCause)
 
     return EProcRc::OK;
 }
-/*EProcRc NasMm::sendPathSwitchRegistration(ERegUpdateCause updateCause)
+EProcRc NasMm::sendPathSwitchRegistration(ERegUpdateCause updateCause)
 {
     if (m_rmState == ERmState::RM_DEREGISTERED)
     {
-        m_logger->warn("Path switch request updating could not be triggered. UE is in RM-DEREGISTERED state.");
+        m_logger->warn("Mobility updating could not be triggered. UE is in RM-DEREGISTERED state.");
         return EProcRc::CANCEL;
     }
 
@@ -283,7 +291,7 @@ EProcRc NasMm::sendMobilityRegistration(ERegUpdateCause updateCause)
                        isHighPriority() || hasEmergency() || updateCause == ERegUpdateCause::CONFIGURATION_UPDATE;
         if (!allowed)
         {
-            m_logger->debug("Path switch request updating canceled, T3346 is running");
+            m_logger->debug("Mobility updating canceled, T3346 is running");
             return EProcRc::STAY;
         }
     }
@@ -304,7 +312,7 @@ EProcRc NasMm::sendMobilityRegistration(ERegUpdateCause updateCause)
     m_logger->debug("Sending %s with update cause [%s]",
                     nas::utils::EnumToString(updateCause == ERegUpdateCause::T3512_EXPIRY
                                                  ? nas::ERegistrationType::PERIODIC_REGISTRATION_UPDATING
-                                                 : nas::ERegistrationType::PATH_SWITCH_REQUEST),
+                                                 : nas::ERegistrationType::PATH_SWITCH_REGISTRATION),
                     ToJson(updateCause).str().c_str());
 
     // "if the registration procedure for mobility and periodic update was triggered due to the last CONFIGURATION
@@ -323,8 +331,8 @@ EProcRc NasMm::sendMobilityRegistration(ERegUpdateCause updateCause)
     auto request = std::make_unique<nas::RegistrationRequest>();
     request->registrationType =
         nas::IE5gsRegistrationType{followOn, updateCause == ERegUpdateCause::T3512_EXPIRY
-                                                 ? nas::ERegistrationType::PERIODIC_REGISTRATION_UPDATING
-                                                 : nas::ERegistrationType::PATH_SWITCH_REQUEST};
+                                                 ? nas::ERegistrationType::MOBILITY_REGISTRATION_UPDATING
+                                                 : nas::ERegistrationType::PATH_SWITCH_REGISTRATION};
 
     // Assign update type
     request->updateType = nas::IE5gsUpdateType{};
@@ -363,13 +371,20 @@ EProcRc NasMm::sendMobilityRegistration(ERegUpdateCause updateCause)
     if (!requestedNssai.slices.empty())
         request->requestedNSSAI = nas::utils::NssaiFrom(requestedNssai);
     request->ueSecurityCapability = createSecurityCapabilityIe();
+    request->updateType =
+        nas::IE5gsUpdateType(nas::ESmsRequested::NOT_SUPPORTED, nas::ENgRanRadioCapabilityUpdate::NOT_NEEDED);
 
     // TODO: Wireshark cannot decode the message if this IE is used, check later
     // request->networkSlicingIndication = nas::IENetworkSlicingIndication{};
     // request->networkSlicingIndication->dcni =
     //    isDefaultNssai ? nas::EDefaultConfiguredNssaiIndication::CREATED_FROM_DEFAULT_CONFIGURED_NSSAI
     //                   : nas::EDefaultConfiguredNssaiIndication::NOT_CREATED_FROM_DEFAULT_CONFIGURED_NSSAI;
-
+    // Assign ngKSI
+    if (m_usim->m_currentNsCtx)
+    {
+        request->nasKeySetIdentifier.tsc = m_usim->m_currentNsCtx->tsc;
+        request->nasKeySetIdentifier.ksi = m_usim->m_currentNsCtx->ngKsi;
+    }
     // Send the message
     auto rc = sendNasMessage(*request);
     if (rc != EProcRc::OK)
@@ -386,7 +401,8 @@ EProcRc NasMm::sendMobilityRegistration(ERegUpdateCause updateCause)
     m_timers->t3511.stop();
 
     return EProcRc::OK;
-}*/
+}
+
 void NasMm::receiveRegistrationAccept(const nas::RegistrationAccept &msg)
 {
     if (m_mmState != EMmState::MM_REGISTERED_INITIATED)
@@ -709,7 +725,7 @@ void NasMm::receiveMobilityRegistrationAccept(const nas::RegistrationAccept &msg
     m_logger->info("%s is successful", nas::utils::EnumToString(regType));
 }
 
-/*void NasMm::receivePathSwitchRegistrationAccept(const nas::RegistrationAccept &msg)
+void NasMm::receivePathSwitchRegistrationAccept(const nas::RegistrationAccept &msg)
 {
     Tai currentTai = m_base->shCtx.getCurrentTai();
     Plmn currentPlmn = currentTai.plmn;
@@ -851,7 +867,7 @@ void NasMm::receiveMobilityRegistrationAccept(const nas::RegistrationAccept &msg
 
     auto regType = m_lastRegistrationRequest->registrationType.registrationType;
     m_logger->info("%s is successful", nas::utils::EnumToString(regType));
-}*/
+}
 
 void NasMm::receiveRegistrationReject(const nas::RegistrationReject &msg)
 {

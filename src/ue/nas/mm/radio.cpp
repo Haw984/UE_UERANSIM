@@ -16,6 +16,9 @@
 #include <ue/rrc/task.hpp>
 #include <utils/common.hpp>
 #include <iostream>
+//Urwah's Edition 
+#include <ue/rls/task.hpp>
+
 
 namespace nr::ue
 {
@@ -136,13 +139,11 @@ void NasMm::handleActiveCellChange(const Tai &prevTai)
         // "Additionally, the registration attempt counter shall be reset when the UE is in substate
         // 5GMM-DEREGISTERED.ATTEMPTING-REGISTRATION or 5GMM-REGISTERED.ATTEMPTING-REGISTRATION-UPDATE, and a new
         // tracking area is entered"
-	std::cout<<"prevTai != currentTai"<<std::endl;
 
         if (m_mmSubState == EMmSubState::MM_DEREGISTERED_ATTEMPTING_REGISTRATION ||
             m_mmSubState == EMmSubState::MM_REGISTERED_ATTEMPTING_REGISTRATION_UPDATE)
         {
             resetRegAttemptCounter();
-	    std::cout<<"counter reset run"<<std::endl;
         }
 
         // "Shall initiate a registration procedure for mobility and periodic registration update when the tracking area
@@ -153,16 +154,15 @@ void NasMm::handleActiveCellChange(const Tai &prevTai)
             currentCell.category == ECellCategory::SUITABLE_CELL)
         {
             mobilityUpdatingRequired(ERegUpdateCause::TAI_CHANGE_IN_ATT_UPD);
-	        std::cout<<"mobility update req run 1"<<std::endl;
         }
-        /*//Urwah Edition
-        else if (m_mmSubState == EMmSubState::MM_REGISTERED_ATTEMPTING_REGISTRATION_UPDATE && !m_timers->t3346.isRunning() &&
+        //Urwah Edition
+        else if (m_mmSubState == EMmSubState::MM_REGISTERED_PLMN_SEARCH &&
                  currentCell.category == ECellCategory::SUITABLE_CELL)
         {
-            //mobilityUpdatingRequired(ERegUpdateCause::TAI_CHANGE_IN_ATT_UPD);
+            mobilityUpdatingRequired(ERegUpdateCause::TAI_CHANGE_IN_ATT_UPD);
             //pathSwitchRequired(ERegUpdateCause::TAI_CHANGE_IN_ATT_UPD);
-            std::cout<<"Path switch registration update req run 1"<<std::endl;
-        }*/
+            //initialRegistrationRequired(EInitialRegCause::TAI_CHANGE_IN_ATT_REG);
+        }
         // "shall initiate an initial registration procedure when the tracking area of the serving cell has changed, if
         // timer T3346 is not running, the PLMN identity of the new cell is not in one of the forbidden PLMN lists and
         // the tracking area of the new cell is not in one of the lists of 5GS forbidden tracking areas"
@@ -170,7 +170,6 @@ void NasMm::handleActiveCellChange(const Tai &prevTai)
             currentCell.category == ECellCategory::SUITABLE_CELL)
         {
             initialRegistrationRequired(EInitialRegCause::TAI_CHANGE_IN_ATT_REG);
-	        std::cout<<"initial registration req run"<<std::endl;
         }
     }
 
@@ -180,15 +179,24 @@ void NasMm::handleActiveCellChange(const Tai &prevTai)
         // PLMN, if timer T3346 is running and the new PLMN is not equivalent to the PLMN where the UE started timer
         // T3346, the PLMN identity of the new cell is not in the forbidden PLMN lists, and the tracking area is not in
         // one of the lists of 5GS forbidden tracking areas"
-	std::cout<<"prevTai != currentTai2"<<std::endl;
+	    std::cout<<"prevTai != currentTai2"<<std::endl;
         if (m_mmSubState == EMmSubState::MM_REGISTERED_ATTEMPTING_REGISTRATION_UPDATE && m_timers->t3346.isRunning() &&
             !m_storage->equivalentPlmnList->contains(currentTai.plmn) &&
             currentCell.category == ECellCategory::SUITABLE_CELL)
         {
             mobilityUpdatingRequired(ERegUpdateCause::PLMN_CHANGE_IN_ATT_UPD);
 	        std::cout<<"mobility update req run 2"<<std::endl;
-        }
 
+        }
+        //Urwah Edition
+        if (m_mmSubState == EMmSubState::MM_REGISTERED_PLMN_SEARCH &&
+                 currentCell.category == ECellCategory::SUITABLE_CELL)
+        {
+            mobilityUpdatingRequired(ERegUpdateCause::TAI_CHANGE_IN_ATT_UPD);
+            //auto m = std::make_unique<NmUeNasToRls>(NmUeNasToRls::CHANGE_SESSION);
+            //m_base->rlsTask->push(std::move(m));
+            //pathSwitchRequired(ERegUpdateCause::TAI_CHANGE_IN_ATT_UPD);
+        }
         // "shall initiate an initial registration procedure when entering a new PLMN, if timer T3346 is running and the
         // new PLMN is not equivalent to the PLMN where the UE started timer T3346, the PLMN identity of the new cell is
         // not in the forbidden PLMN lists and the tracking area is not in one of the lists of 5GS forbidden tracking
@@ -198,7 +206,8 @@ void NasMm::handleActiveCellChange(const Tai &prevTai)
             currentCell.category == ECellCategory::SUITABLE_CELL)
         {
             initialRegistrationRequired(EInitialRegCause::PLMN_CHANGE_IN_ATT_REG);
-	    std::cout<<"initial registration req run"<<std::endl;
+	        std::cout<<"initial registration req run"<<std::endl;
+
         }
     }
 
@@ -217,6 +226,8 @@ void NasMm::handleActiveCellChange(const Tai &prevTai)
         m_logger->err("Active cell change in [CM-IDLE] state while MM specific procedure is ongoing");
         switchMmState(EMmSubState::MM_DEREGISTERED_PS);
     }
+
+
 }
 
 void NasMm::handleRrcConnectionSetup()
@@ -224,6 +235,7 @@ void NasMm::handleRrcConnectionSetup()
     // TODO
     switchCmState(ECmState::CM_CONNECTED);
     std::cout<<"Handle Connection setup Function is running"<<std::endl;
+
 }
 
 void NasMm::handleRrcConnectionRelease()
@@ -273,18 +285,20 @@ void NasMm::handleRrcEstablishmentFailure()
 void NasMm::handleRadioLinkFailure()
 {
     // TODO
-
     if (m_cmState == ECmState::CM_CONNECTED)
     {
         m_logger->err("Radio link failure detected");
     }
-
+    //Very Easy way!!!! deregistrationRequired(EDeregCause::NORMAL);
     handleRrcConnectionRelease();
-
     if (m_mmState == EMmState::MM_REGISTERED)
         switchMmState(EMmSubState::MM_REGISTERED_PS);
+        //switchMmState(EMmSubState::MM_DEREGISTERED_INITIATED_PS);
     else if (m_mmState == EMmState::MM_DEREGISTERED)
         switchMmState(EMmSubState::MM_DEREGISTERED_PS);
+        
+    //auto w = std::make_unique<NmUeNasToApp>(NmUeNasToApp::RADIO_LINK_FAILURE);
+    //m_base->appTask->push(std::move(w));
 }
 
 void NasMm::localReleaseConnection(bool treatBarred)

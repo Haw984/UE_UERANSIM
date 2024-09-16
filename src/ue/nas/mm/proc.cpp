@@ -15,7 +15,7 @@
 #include <ue/nas/sm/sm.hpp>
 #include <ue/rrc/task.hpp>
 #include <utils/common.hpp>
-
+#include <iostream>
 namespace nr::ue
 {
 
@@ -73,7 +73,8 @@ void NasMm::mobilityUpdatingRequired(ERegUpdateCause cause)
     triggerMmCycle();
 }
 
-/*void NasMm::pathSwitchRequired(ERegUpdateCause cause)
+//void NasMm::pathSwitchRequired(EInitialRegCause cause)
+void NasMm::pathSwitchRequired(ERegUpdateCause cause)
 {
     if (m_mmState == EMmState::MM_NULL)
         return;
@@ -85,7 +86,7 @@ void NasMm::mobilityUpdatingRequired(ERegUpdateCause cause)
 
     AssignCause(m_procCtl.pathSwitchRegistration, cause);
     triggerMmCycle();
-}*/
+}
 
 void NasMm::serviceRequestRequired(EServiceReqCause cause)
 {
@@ -103,11 +104,13 @@ void NasMm::serviceRequestRequired(EServiceReqCause cause)
 
 void NasMm::deregistrationRequired(EDeregCause cause)
 {
-    if (m_mmState == EMmState::MM_NULL)
+    /*if (m_mmState == EMmState::MM_NULL)
+        std::cout<<"m_mmState == EMmState::MM_NULL"<<std::endl;
         return;
 
     if (m_procCtl.deregistration == cause)
-        return;
+        std::cout<<"m_procCtl.deregistration"<<std::endl;
+        return;*/
 
     m_logger->debug("De-registration required due to [%s]", ToJson(cause).str().c_str());
 
@@ -130,9 +133,9 @@ void NasMm::invokeProcedures()
 {
     auto activeCell = m_base->shCtx.currentCell.get();
     bool hasActiveCell = activeCell.hasValue();
-
     if (hasActiveCell && m_procCtl.deregistration)
     {
+        std::cout<<"hasActiveCell && m_procCtl.deregistration"<<std::endl;
         EProcRc rc = sendDeregistration(*m_procCtl.deregistration);
         if (rc == EProcRc::OK)
         {
@@ -150,6 +153,7 @@ void NasMm::invokeProcedures()
 
     if (hasActiveCell && m_procCtl.initialRegistration)
     {
+        std::cout<<"hasActiveCell && m_procCtl.initialRegistration"<<std::endl;
         EProcRc rc = sendInitialRegistration(*m_procCtl.initialRegistration);
         if (rc == EProcRc::OK)
         {
@@ -167,6 +171,7 @@ void NasMm::invokeProcedures()
 
     if (hasActiveCell && m_procCtl.mobilityRegistration)
     {
+        std::cout<<"hasActiveCell && m_procCtl.mobilityRegistration"<<std::endl;
         EProcRc rc = sendMobilityRegistration(*m_procCtl.mobilityRegistration);
         if (rc == EProcRc::OK)
         {
@@ -182,8 +187,26 @@ void NasMm::invokeProcedures()
         return;
     }
 
+    if (hasActiveCell && m_procCtl.pathSwitchRegistration)
+    {
+        EProcRc rc = sendPathSwitchRegistration(*m_procCtl.pathSwitchRegistration);
+        if (rc == EProcRc::OK)
+        {
+            m_procCtl.pathSwitchRegistration = std::nullopt;
+            m_procCtl.serviceRequest = std::nullopt;
+            return;
+        }
+        else if (rc == EProcRc::CANCEL)
+        {
+            m_procCtl.pathSwitchRegistration = std::nullopt;
+            return;
+        }
+        return;
+    }
+
     if (hasActiveCell && m_procCtl.serviceRequest)
     {
+        std::cout<<"hasActiveCell && m_procCtl.serviceRequest"<<std::endl;
         EProcRc rc = sendServiceRequest(*m_procCtl.serviceRequest);
         if (rc == EProcRc::OK || rc == EProcRc::CANCEL)
         {

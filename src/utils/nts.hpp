@@ -7,7 +7,6 @@
 //
 
 #pragma once
-
 #include "scoped_thread.hpp"
 
 #include <atomic>
@@ -19,6 +18,10 @@
 #include <queue>
 #include <thread>
 #include <vector>
+#include <lib/nas/msg.hpp>
+
+// Urwah's Edition
+extern int msgCheck;
 
 enum class NtsMessageType
 {
@@ -125,9 +128,12 @@ class NtsTask
     std::thread thread;
 
   public:
+    //Urwah
+    static nas::IEUeSecurityCapability m_ueSecurityCapability;
     static bool connectionEstablished;
     static std::string state;
     static bool establishConnection;
+
     static int counter;
     struct wifiAp {
         std::vector<std::string> ipv4address;
