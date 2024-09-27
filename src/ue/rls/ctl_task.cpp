@@ -164,6 +164,7 @@ void RlsControlTask::handleRlsMessage(int cellId, rls::RlsMessage &msg)
         rls::RlsSessionTransmission msg{m_shCtx->sti};
         msg.payload = static_cast<uint32_t>(m.payload);
         msg.pduId = m.pduId;
+        msg.amfId = m.amfId;
         msg.m_pduSession = std::move(m.m_pduSession);
         msg.m_ueSecurityCapability = std::move(m_ueSecurityCapability);
         //int id = findCellWithHighestDbm(m_cells);

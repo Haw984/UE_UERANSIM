@@ -104,7 +104,7 @@ void EncodeRlsMessage(const RlsMessage &msg, OctetString &stream)
         }
         stream.appendOctet4(m.pduId);
         stream.appendOctet4(m.payload);
-
+        stream.appendOctet4(m.amfId);
         //serialize(stream, m_pduSession);
         //%%%%%%%%%%%%%%%%%%
         //size_t len = 0;
@@ -243,6 +243,7 @@ std::unique_ptr<RlsMessage> DecodeRlsMessage(const OctetView &stream)
         //res->pduType = static_cast<EPduType>((uint8_t)stream.read());
         res->pduId = stream.read4UI();
         res->payload = stream.read4UI();
+        res->amfId = stream.read4UI();
         //size_t len = stream.read4UI();
 
         int ueId = stream.read4UI();
