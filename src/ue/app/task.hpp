@@ -47,6 +47,10 @@ class UeAppTask : public NtsTask
     void receiveStatusUpdate(NmUeStatusUpdate &msg);
     void setupTunInterface(const PduSession *pduSession);
     //void releaseSession(std::unique_ptr<nr::ue::PduSession>  *pduSession);
+    void updateRoutingForTunInterface();
+    bool CheckInterfaceAndFetchIp(const std::string &prefix, std::string &interfaceName, std::string &ipAddress);
+
+
 };
 
 } // namespace nr::ue

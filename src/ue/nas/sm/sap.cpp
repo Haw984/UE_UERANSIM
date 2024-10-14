@@ -14,6 +14,7 @@
 #include <ue/app/task.hpp>
 #include <ue/nas/mm/mm.hpp>
 #include <ue/rls/task.hpp>
+#include <iostream>
 
 namespace nr::ue
 {
@@ -72,6 +73,7 @@ void NasSm::handleUplinkDataRequest(int psi, OctetString &&data)
 
         auto m = std::make_unique<NmUeNasToRls>(NmUeNasToRls::DATA_PDU_DELIVERY);
         m->psi = psi;
+        std::cout<<"psi: "<<psi<<std::endl;
         m->pdu = std::move(data);
         m_base->rlsTask->push(std::move(m));
     }

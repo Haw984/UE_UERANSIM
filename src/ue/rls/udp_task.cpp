@@ -25,7 +25,7 @@
 static constexpr const int BUFFER_SIZE = 16384;
 static constexpr const int LOOP_PERIOD = 1000;
 static constexpr const int RECEIVE_TIMEOUT = 200;
-static constexpr const int HEARTBEAT_THRESHOLD = 2000; // (LOOP_PERIOD + RECEIVE_TIMEOUT)'dan büyük olmalı
+static constexpr const int HEARTBEAT_THRESHOLD = 10000; // (LOOP_PERIOD + RECEIVE_TIMEOUT)'dan büyük olmalı
 
 bool NtsTask::connectionEstablished = false;
 bool NtsTask::establishConnection = false;
@@ -287,6 +287,8 @@ void RlsUdpTask::receiveRlsPdu(const InetAddress &addr, std::unique_ptr<rls::Rls
     auto w = std::make_unique<NmUeRlsToRls>(NmUeRlsToRls::RECEIVE_RLS_MESSAGE);
     if (msg->msgType == rls::EMessageType::SESSION_TRANSMISSION)
     {
+        w->old_cellId = m_cells[msg->sti].cellId;
+        std::cout<<"msg->sti: "<<msg->sti<<std::endl;
         w->cellId = findCellWithHighestDbm(m_cells);//cell id var is use to send packet to max dbm cell
     }
     else{
@@ -320,8 +322,8 @@ void RlsUdpTask::heartbeatCycle(uint64_t time, const Vector3 &simPos)
     for (auto &cell : m_cells)
     {
         auto delta = time - cell.second.lastSeen;
-	    long unsigned int total_timeout = RECEIVE_TIMEOUT +  velocity_in_time;
-        if (delta >  total_timeout)
+	    //long unsigned int total_timeout = RECEIVE_TIMEOUT +  velocity_in_time;
+        if (delta >  HEARTBEAT_THRESHOLD)
             toRemove.insert({cell.first, cell.second.cellId});
     }
 

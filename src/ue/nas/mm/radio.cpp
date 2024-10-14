@@ -156,13 +156,13 @@ void NasMm::handleActiveCellChange(const Tai &prevTai)
             mobilityUpdatingRequired(ERegUpdateCause::TAI_CHANGE_IN_ATT_UPD);
         }
         //Urwah Edition
-        else if (m_mmSubState == EMmSubState::MM_REGISTERED_PLMN_SEARCH &&
+        /*else if (m_mmSubState == EMmSubState::MM_REGISTERED_PLMN_SEARCH &&
                  currentCell.category == ECellCategory::SUITABLE_CELL)
         {
             mobilityUpdatingRequired(ERegUpdateCause::TAI_CHANGE_IN_ATT_UPD);
             //pathSwitchRequired(ERegUpdateCause::TAI_CHANGE_IN_ATT_UPD);
             //initialRegistrationRequired(EInitialRegCause::TAI_CHANGE_IN_ATT_REG);
-        }
+        }*/
         // "shall initiate an initial registration procedure when the tracking area of the serving cell has changed, if
         // timer T3346 is not running, the PLMN identity of the new cell is not in one of the forbidden PLMN lists and
         // the tracking area of the new cell is not in one of the lists of 5GS forbidden tracking areas"
@@ -189,14 +189,14 @@ void NasMm::handleActiveCellChange(const Tai &prevTai)
 
         }
         //Urwah Edition
-        if (m_mmSubState == EMmSubState::MM_REGISTERED_PLMN_SEARCH &&
+        /*if (m_mmSubState == EMmSubState::MM_REGISTERED_PLMN_SEARCH &&
                  currentCell.category == ECellCategory::SUITABLE_CELL)
         {
             mobilityUpdatingRequired(ERegUpdateCause::TAI_CHANGE_IN_ATT_UPD);
             //auto m = std::make_unique<NmUeNasToRls>(NmUeNasToRls::CHANGE_SESSION);
             //m_base->rlsTask->push(std::move(m));
             //pathSwitchRequired(ERegUpdateCause::TAI_CHANGE_IN_ATT_UPD);
-        }
+        }*/
         // "shall initiate an initial registration procedure when entering a new PLMN, if timer T3346 is running and the
         // new PLMN is not equivalent to the PLMN where the UE started timer T3346, the PLMN identity of the new cell is
         // not in the forbidden PLMN lists and the tracking area is not in one of the lists of 5GS forbidden tracking
@@ -290,7 +290,7 @@ void NasMm::handleRadioLinkFailure()
         m_logger->err("Radio link failure detected");
     }
     //Very Easy way!!!! deregistrationRequired(EDeregCause::NORMAL);
-    handleRrcConnectionRelease();
+    //handleRrcConnectionRelease();
     if (m_mmState == EMmState::MM_REGISTERED)
         switchMmState(EMmSubState::MM_REGISTERED_PS);
         //switchMmState(EMmSubState::MM_DEREGISTERED_INITIATED_PS);

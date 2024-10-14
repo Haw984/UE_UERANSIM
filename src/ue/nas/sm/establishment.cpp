@@ -12,6 +12,7 @@
 #include <lib/nas/utils.hpp>
 #include <ue/app/task.hpp>
 #include <ue/nas/mm/mm.hpp>
+#include <iostream>
 
 namespace nr::ue
 {
@@ -135,13 +136,14 @@ void NasSm::sendEstablishmentRequest(const SessionConfig &config)
 void NasSm::receiveEstablishmentAccept(const nas::PduSessionEstablishmentAccept &msg)
 {
     m_logger->debug("PDU Session Establishment Accept received");
-
+    std::cout<<"PTI: "<<msg.pti<<std::endl;
     if (!checkPtiAndPsi(msg))
         return;
 
     freeProcedureTransactionId(msg.pti);
 
     auto &pduSession = m_pduSessions[msg.pduSessionId];
+    std::cout<<"msg.pduSessionId "<<msg.pduSessionId<<std::endl;
     if (pduSession->psState != EPsState::ACTIVE_PENDING)
     {
         m_logger->err("PS establishment accept received without being requested");
@@ -158,20 +160,33 @@ void NasSm::receiveEstablishmentAccept(const nas::PduSessionEstablishmentAccept 
     pduSession->psState = EPsState::ACTIVE;
     pduSession->authorizedQoSRules = nas::utils::DeepCopyIe(msg.authorizedQoSRules);
     pduSession->sessionAmbr = nas::utils::DeepCopyIe(msg.sessionAmbr);
-    pduSession->sessionType = msg.selectedPduSessionType.pduSessionType;
+    //std::cout<<"msg.sessionAmbr"<<pduSession->sessionAmbr<<std::endl;
 
+    pduSession->sessionType = msg.selectedPduSessionType.pduSessionType;
+    //std::cout<<"msg.selectedPduSessionType.pduSessionType"<<msg.selectedPduSessionType.pduSessionType<<std::endl;
     if (msg.authorizedQoSFlowDescriptions.has_value())
         pduSession->authorizedQoSFlowDescriptions = nas::utils::DeepCopyIe(*msg.authorizedQoSFlowDescriptions);
     else
         pduSession->authorizedQoSFlowDescriptions = {};
 
     if (msg.pduAddress.has_value())
+    {
         pduSession->pduAddress = nas::utils::DeepCopyIe(*msg.pduAddress);
+        for (size_t i = 0; i < sizeof(pduSession->pduAddress->pduAddressInformation); ++i) {
+        if (i != 0) {
+            std::cout << ".";
+        }
+        std::cout << static_cast<int>(pduSession->pduAddress->pduAddressInformation.data()[i]);
+        }
+        std::cout << std::endl;
+    }
     else
-        pduSession->pduAddress = {};
+     {   pduSession->pduAddress = {};}
 
     auto statusUpdate = std::make_unique<NmUeStatusUpdate>(NmUeStatusUpdate::SESSION_ESTABLISHMENT);
     statusUpdate->pduSession = pduSession;
+    //std::cout<<" statusUpdate->pduSession "<< statusUpdate->pduSession << std::endl;
+  
     m_base->appTask->push(std::move(statusUpdate));
 
     m_logger->info("PDU Session establishment is successful PSI[%d]", pduSession->psi);
@@ -203,5 +218,12 @@ void NasSm::receiveEstablishmentReject(const nas::PduSessionEstablishmentReject 
         // TODO: inform the upper layers of the failure of the procedure
     }
 }
+void NasSm::receiveXnHandoverEstablishmentAccept(const std::unique_ptr<PduSessionResource> m_pduSession)
+{
+    std::cout<<"WOrking with Nas SM"<<std::endl;
+    //std::cout<<"m_pduSessions[m_pduSession->psi]: "<< m_pduSessions[m_pduSession->psi] <<std::endl;
+    return;
+}
+
 
 } // namespace nr::ue

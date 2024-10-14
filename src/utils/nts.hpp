@@ -62,6 +62,7 @@ enum class NtsMessageType
     UE_RLS_TO_RLS,
     UE_NAS_TO_APP,
     UE_NAS_TO_RLS,
+    UE_RRC_TO_APP,
 };
 
 struct NtsMessage

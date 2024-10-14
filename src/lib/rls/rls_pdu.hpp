@@ -32,7 +32,10 @@ enum class EMessageType : uint8_t
     HEARTBEAT_ACK = 5,
     PDU_TRANSMISSION = 6,
     PDU_TRANSMISSION_ACK = 7,
+    //Urwah
     SESSION_TRANSMISSION = 8,
+    XN_SESSION_TRANSMISSION = 9,
+    RELEASE_SESSION = 10,
 
 
 };
@@ -83,6 +86,30 @@ struct RlsSessionTransmission : RlsMessage
     nas::IEUeSecurityCapability m_ueSecurityCapability;
 
     explicit RlsSessionTransmission(uint64_t sti) : RlsMessage(EMessageType::SESSION_TRANSMISSION, sti)
+    {
+    }
+};
+struct RlsXnSessionTransmission : RlsMessage
+{
+    EPduType pduType{};
+    uint32_t pduId{};
+    uint32_t payload{};
+    uint32_t amfId{};
+
+    std::unique_ptr<nr::ue::PduSessionResource> m_pduSession;
+
+
+    explicit RlsXnSessionTransmission(uint64_t sti) : RlsMessage(EMessageType::XN_SESSION_TRANSMISSION, sti)
+    {
+    }
+};
+struct RlsTerminateSession : RlsMessage
+{
+    uint32_t pduId{};
+    uint32_t psi{};
+
+
+    explicit RlsTerminateSession(uint64_t sti) : RlsMessage(EMessageType::RELEASE_SESSION, sti)
     {
     }
 };

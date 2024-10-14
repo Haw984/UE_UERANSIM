@@ -21,6 +21,10 @@
 #include <string>
 #include <stdexcept>
 
+#include <ifaddrs.h>    // For getifaddrs, freeifaddrs
+#include <arpa/inet.h>  // For inet_ntoa (used for converting IP address to string)
+
+
 std::vector<int> findAllMaintainIndices() {
     std::vector<int> maintainIndices;
     for (size_t i = 0; i < NtsTask::apSelection.additionalInfo.size(); ++i) {
@@ -112,7 +116,7 @@ void UeAppTask::onLoop()
     if (!msg){	
 	if (NtsTask::establishConnection == true)
     	{
-	PduSession wifiSession(1);
+	    PduSession wifiSession(1);
         wifiSession.psState = EPsState::ACTIVE;
         wifiSession.uplinkPending = true;
         wifiSession.sessionType = nas::EPduSessionType::IPV4;
@@ -120,7 +124,7 @@ void UeAppTask::onLoop()
         OctetString address(std::move(bytes)); // Use std::move to cast bytes to an rvalue reference
         nas::IEPduAddress pduAddress(wifiSession.sessionType, std::move(address)); // Wrap OctetString in IEPduA>
         wifiSession.pduAddress = std::move(pduAddress); // Assign IEPduAddress to pduAddress member of session
-	std::vector<int> maintainIndices = findAllMaintainIndices();
+	    std::vector<int> maintainIndices = findAllMaintainIndices();
         if (!maintainIndices.empty() )
         {
              std::cout << "Indices where 'Maintain' occurs:" << std::endl;
@@ -225,13 +229,23 @@ void UeAppTask::onLoop()
             }
             break;
         }
-        /*case NmUeNasToApp::RADIO_LINK_FAILURE:{
-            std::cout<<"CHal gya larkay!!!!"<<std::endl;
-            if (m_pduSession != nullptr)
-            {
-                releaseSession(m_pduSession);
-            }
-        }*/
+        }
+        break;
+    }
+    //Urwah Edition
+    case NtsMessageType::UE_RRC_TO_APP: {
+        auto &w = dynamic_cast<NmUeRrcToApp &>(*msg);
+        switch (w.present)
+        {
+        case NmUeRrcToApp::SWITCH_REQUEST: {
+            std::cout<<"NmUeRrcToApp::SWITCH_REQUEST"<<std::endl;
+            updateRoutingForTunInterface();
+
+            auto x = std::make_unique<NmUeAppToNas>(NmUeAppToNas::SESSION_SWITCH_REQUEST);
+            x->m_pduSession = std::move(w.m_pduSession);
+            m_base->nasTask->push(std::move(x)); 
+            break;
+        }
         }
         break;
     }
@@ -343,7 +357,13 @@ void UeAppTask::setupTunInterface(const PduSession *pduSession)
         m_logger->err("TUN allocation failure [%s]", error.c_str());
         return;
     }
-
+    for (size_t i = 0; i < sizeof(pduSession->pduAddress->pduAddressInformation); ++i) {
+        if (i != 0) {
+            std::cout << ".";
+        }
+        std::cout << static_cast<int>(pduSession->pduAddress->pduAddressInformation.data()[i]);
+    }
+    std::cout << std::endl;
     std::string ipAddress = utils::OctetStringToIp(pduSession->pduAddress->pduAddressInformation);
 
     bool r = tun::TunConfigure(allocatedName, ipAddress, cons::TunMtu, m_base->config->configureRouting, error);
@@ -360,6 +380,69 @@ void UeAppTask::setupTunInterface(const PduSession *pduSession)
 
     m_logger->info("Connection setup for PDU session[%d] is successful, TUN interface[%s, %s] is up.", pduSession->psi,
                    allocatedName.c_str(), ipAddress.c_str());
+}
+
+void UeAppTask::updateRoutingForTunInterface()
+{
+    if (!utils::IsRoot())
+    {
+        m_logger->err("TUN interface could not be updated. Permission denied. Please run the UE with 'sudo'");
+        return;
+    }
+
+    // Check if a TUN interface with the correct prefix exists and get its name and IP address
+    std::string interfaceName, ipAddress;
+    if (!UeAppTask::CheckInterfaceAndFetchIp(cons::TunNamePrefix, interfaceName, ipAddress))
+    {
+        m_logger->err("No TUN interface with prefix [%s] found.", cons::TunNamePrefix);
+        return;
+    }
+
+    m_logger->info("Found existing TUN interface: [%s] with IP address: [%s]", interfaceName.c_str(), ipAddress.c_str());
+
+    // Update the routing table for the existing TUN interface
+    std::string error;
+    bool routingConfigured = tun::TunConfigure(interfaceName, ipAddress, cons::TunMtu, m_base->config->configureRouting, error);
+
+    if (!routingConfigured || !error.empty())
+    {
+        m_logger->err("Failed to update routing for TUN interface [%s]: %s", interfaceName.c_str(), error.c_str());
+        return;
+    }
+
+    m_logger->info("Routing update for TUN interface [%s] with IP [%s] was successful.", interfaceName.c_str(), ipAddress.c_str());
+}
+
+// Function to check for the interface with prefix and return its IP address.
+bool UeAppTask::CheckInterfaceAndFetchIp(const std::string &prefix, std::string &interfaceName, std::string &ipAddress) {
+    struct ifaddrs *addrs, *tmp;
+    getifaddrs(&addrs);
+    tmp = addrs;
+
+    while (tmp) {
+        std::string currentInterface = tmp->ifa_name;
+        
+        // Check if the interface starts with the provided prefix.
+        if (currentInterface.rfind(prefix, 0) == 0) {
+            // Interface exists
+            interfaceName = currentInterface;
+
+            // Check if the interface has an associated IP address.
+            if (tmp->ifa_addr && tmp->ifa_addr->sa_family == AF_INET) {
+                struct sockaddr_in *addr = (struct sockaddr_in *)tmp->ifa_addr;
+                ipAddress = inet_ntoa(addr->sin_addr);
+                
+                // Clean up and return success.
+                freeifaddrs(addrs);
+                return true;
+            }
+        }
+        tmp = tmp->ifa_next;
+    }
+
+    // Clean up and return false if no matching interface is found.
+    freeifaddrs(addrs);
+    return false;
 }
 
 } // namespace nr::ue

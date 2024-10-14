@@ -86,8 +86,6 @@ void UeRlsTask::onLoop()
                 }
 
             }
-
-
             break;
         }
         case NmUeRlsToRls::DOWNLINK_DATA: {
@@ -116,6 +114,14 @@ void UeRlsTask::onLoop()
         case NmUeRlsToRls::TRANSMISSION_FAILURE: {
             m_logger->debug("transmission failure [%d]", w.pduList.size());
             break;
+        }
+        case NmUeRlsToRls::ESTABLISH_CONNECTION: {
+            m_logger->info("Establishing new Connection. ");
+            auto m = std::make_unique<NmUeRlsToRrc>(NmUeRlsToRrc::XN_HANDOVER);
+            m->cellId = w.cellId;
+            m->m_pduSession = std::move(w.m_pduSession);
+            m_base->rrcTask->push(std::move(m));
+
         }
         default: {
             m_logger->unhandledNts(*msg);
