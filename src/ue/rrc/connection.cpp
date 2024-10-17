@@ -19,6 +19,7 @@
 #include <asn/rrc/ASN_RRC_RRCSetupComplete.h>
 #include <asn/rrc/ASN_RRC_RRCSetupRequest-IEs.h>
 #include <asn/rrc/ASN_RRC_RRCSetupRequest.h>
+#include <iostream>
 
 namespace nr::ue
 {
@@ -78,6 +79,8 @@ void UeRrcTask::startConnectionEstablishment(OctetString &&nasPdu)
 
     /* Set the Initial NAS PDU */
     m_initialNasPdu = std::move(nasPdu);
+    //m_BackupNasPdu  = m_initialNasPdu;
+
 
     /* Send the message */
     m_logger->debug("Sending RRC Setup Request");
@@ -96,6 +99,7 @@ void UeRrcTask::receiveRrcSetup(int cellId, const ASN_RRC_RRCSetup &msg)
     if (m_lastSetupReq != ERrcLastSetupRequest::SETUP_REQUEST)
     {
         // TODO
+
         //return;
     }
 
@@ -123,7 +127,6 @@ void UeRrcTask::receiveRrcSetup(int cellId, const ASN_RRC_RRCSetup &msg)
         sTmsi->present = ASN_RRC_RRCSetupComplete_IEs__ng_5G_S_TMSI_Value_PR_ng_5G_S_TMSI;
         asn::SetBitStringLong<48>(gutiOrTmsi->toTmsiValue(), sTmsi->choice.ng_5G_S_TMSI);
     }
-
     m_initialNasPdu = {};
     sendRrcMessage(pdu);
     asn::Free(asn_DEF_ASN_RRC_UL_DCCH_Message, pdu);

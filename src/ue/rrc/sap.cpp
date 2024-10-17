@@ -34,6 +34,7 @@ void UeRrcTask::handleRlsSapMessage(NmUeRlsToRrc &msg)
     }
     //Urwah
     case NmUeRlsToRrc::XN_HANDOVER: {
+        m_lastSetupReq = ERrcLastSetupRequest::REESTABLISHMENT_REQUEST;
         switchState(ERrcState::RRC_CONNECTED);
         handoverToTargetCellPreservingContext(msg.cellId);
         auto m = std::make_unique<NmUeRrcToApp>(NmUeRrcToApp::SWITCH_REQUEST);
@@ -56,9 +57,9 @@ void UeRrcTask::handleNasSapMessage(NmUeNasToRrc &msg)
         // TODO: handle treat barred
         (void)msg.treatBarred;
 
-        switchState(ERrcState::RRC_IDLE);
-        m_base->rlsTask->push(std::make_unique<NmUeRrcToRls>(NmUeRrcToRls::RESET_STI));
-        m_base->nasTask->push(std::make_unique<NmUeRrcToNas>(NmUeRrcToNas::RRC_CONNECTION_RELEASE));
+        //switchState(ERrcState::RRC_IDLE);
+        //m_base->rlsTask->push(std::make_unique<NmUeRrcToRls>(NmUeRrcToRls::RESET_STI));
+        //m_base->nasTask->push(std::make_unique<NmUeRrcToNas>(NmUeRrcToNas::RRC_CONNECTION_RELEASE));
         break;
     }
     case NmUeNasToRrc::RRC_NOTIFY: {

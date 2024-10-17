@@ -113,6 +113,8 @@ void EncodeRlsMessage(const RlsMessage &msg, OctetString &stream)
         stream.appendOctet4(m.pduId);
         stream.appendOctet4(m.payload);
         stream.appendOctet4(m.amfId);
+        stream.appendOctet4(m.length_ueCtx);
+        stream.append(m.m_ueCtx);
         //serialize(stream, m_pduSession);
         //%%%%%%%%%%%%%%%%%%
         //size_t len = 0;
@@ -252,7 +254,11 @@ std::unique_ptr<RlsMessage> DecodeRlsMessage(const OctetView &stream)
         res->pduId = stream.read4UI();
         res->payload = stream.read4UI();
         res->amfId = stream.read4UI();
-        //size_t len = stream.read4UI();
+        // Step 1: Read the length (first 4 bytes)
+        res->length_ueCtx = stream.read4UI();  // This gives you the length of the serialized m_ueCtx
+
+        // Step 2: Store the rest of the data into an OctetString
+        res->m_ueCtx = stream.readOctetString(static_cast<size_t>(res->length_ueCtx));  // Cast length to size_t
 
         int ueId = stream.read4UI();
         int psi = stream.read4UI();
@@ -329,20 +335,6 @@ std::unique_ptr<RlsMessage> DecodeRlsMessage(const OctetView &stream)
         res->m_pduSession->qosFlows->list.count = qosFlowCount;
         std::cout<<"res->m_pduSession->qosFlows->list.array[0]->qosFlowIdentifier: "<<res->m_pduSession->qosFlows->list.array[0]->qosFlowIdentifier<<std::endl;
 
-        /*// Use the asn::Unique constructor to convert the raw pointer returned by asn::New into a unique_ptr
-        asn::Unique<ASN_NGAP_QosFlowSetupRequestList> newQosFlows(asn::New<ASN_NGAP_QosFlowSetupRequestList>());
-
-        // Assign the newQosFlows to m.m_pduSession->qosFlows using std::move
-        res->m_pduSession->qosFlows = std::move(newQosFlows);
-        res->m_pduSession->qosFlows->list.array = new ASN_NGAP_QosFlowSetupRequestItem*[qosFlowCount];
-        res->m_pduSession->qosFlows->list.array[0] = new ASN_NGAP_QosFlowSetupRequestItem();
-
-        for (int iQos = 0; iQos < static_cast<int>(qosFlowCount); iQos++) {
-
-            // Store the raw pointer in the array
-            res->m_pduSession->qosFlows->list.array[iQos]->qosFlowIdentifier = stream.read4I();
-
-        }*/
         std::cout<<" Decoding is running@@@"<<std::endl;
 
         return res;

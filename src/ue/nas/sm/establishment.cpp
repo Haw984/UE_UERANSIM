@@ -160,8 +160,12 @@ void NasSm::receiveEstablishmentAccept(const nas::PduSessionEstablishmentAccept 
     pduSession->psState = EPsState::ACTIVE;
     pduSession->authorizedQoSRules = nas::utils::DeepCopyIe(msg.authorizedQoSRules);
     pduSession->sessionAmbr = nas::utils::DeepCopyIe(msg.sessionAmbr);
-    //std::cout<<"msg.sessionAmbr"<<pduSession->sessionAmbr<<std::endl;
-
+    std::cout << "msg.sessionAmbr: "
+           << (int)pduSession->sessionAmbr->sessionAmbrForDownlink
+          << std::endl;
+    std::cout << "msg.sessionAmbr Uplink: "
+           << (int)pduSession->sessionAmbr->sessionAmbrForUplink
+          << std::endl;
     pduSession->sessionType = msg.selectedPduSessionType.pduSessionType;
     //std::cout<<"msg.selectedPduSessionType.pduSessionType"<<msg.selectedPduSessionType.pduSessionType<<std::endl;
     if (msg.authorizedQoSFlowDescriptions.has_value())
@@ -221,7 +225,8 @@ void NasSm::receiveEstablishmentReject(const nas::PduSessionEstablishmentReject 
 void NasSm::receiveXnHandoverEstablishmentAccept(const std::unique_ptr<PduSessionResource> m_pduSession)
 {
     std::cout<<"WOrking with Nas SM"<<std::endl;
-    //std::cout<<"m_pduSessions[m_pduSession->psi]: "<< m_pduSessions[m_pduSession->psi] <<std::endl;
+    std::cout<<"m_pduSessions[m_pduSession->psi]: "<< m_pduSessions[m_pduSession->psi]->psi <<std::endl;
+    //m_mm->m_cmState = std::move(ECmState::CM_CONNECTED);
     return;
 }
 

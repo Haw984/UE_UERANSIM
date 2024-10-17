@@ -51,13 +51,18 @@ void NasSm::onTimerTick()
 void NasSm::handleUplinkDataRequest(int psi, OctetString &&data)
 {
     auto state = m_mm->m_mmSubState;
+    //std::cout<<1<<std::endl;
     if (state != EMmSubState::MM_REGISTERED_INITIATED_PS && state != EMmSubState::MM_REGISTERED_NORMAL_SERVICE &&
         state != EMmSubState::MM_REGISTERED_NON_ALLOWED_SERVICE &&
         state != EMmSubState::MM_REGISTERED_LIMITED_SERVICE && state != EMmSubState::MM_DEREGISTERED_INITIATED_PS &&
         state != EMmSubState::MM_SERVICE_REQUEST_INITIATED_PS)
+        std::cout<<2<<std::endl;
+
         return;
 
     if (m_pduSessions[psi]->psState != EPsState::ACTIVE)
+        std::cout<<3<<std::endl;
+
         return;
 
     if (m_mm->m_cmState == ECmState::CM_CONNECTED)
@@ -67,20 +72,23 @@ void NasSm::handleUplinkDataRequest(int psi, OctetString &&data)
 
         if (m_pduSessions[psi]->uplinkPending)
         {
+            std::cout<<4<<std::endl;
             m_pduSessions[psi]->uplinkPending = false;
             handleUplinkStatusChange(psi, false);
         }
-
+        std::cout<<5<<std::endl;
         auto m = std::make_unique<NmUeNasToRls>(NmUeNasToRls::DATA_PDU_DELIVERY);
         m->psi = psi;
-        std::cout<<"psi: "<<psi<<std::endl;
         m->pdu = std::move(data);
         m_base->rlsTask->push(std::move(m));
     }
     else
     {
+        std::cout<<6<<std::endl;
+
         if (!m_pduSessions[psi]->uplinkPending)
         {
+            std::cout<<7<<std::endl;
             m_pduSessions[psi]->uplinkPending = true;
             handleUplinkStatusChange(psi, true);
         }

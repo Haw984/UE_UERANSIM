@@ -172,6 +172,8 @@ void RlsControlTask::handleRlsMessage(int cellId, rls::RlsMessage &msg)
         oldUeId = m.pduId;
         msg.amfId = m.amfId;
         msg.m_pduSession = std::move(m.m_pduSession);
+        msg.m_ueCtx = std::move(m.m_ueCtx);
+        msg.length_ueCtx = m.length_ueCtx;
         msg.m_ueSecurityCapability = std::move(m_ueSecurityCapability);
         m_udpTask->send(cellId, msg);
     }
@@ -263,7 +265,6 @@ void RlsControlTask::handleUplinkRrcDelivery(int cellId, uint32_t pduId, rrc::Rr
     msg.pdu = std::move(data);
     msg.payload = static_cast<uint32_t>(channel);
     msg.pduId = pduId;
-
     m_udpTask->send(cellId, msg);
 }
 
