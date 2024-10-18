@@ -5,12 +5,14 @@
 // https://github.com/aligungr/UERANSIM/
 // See README, LICENSE, and CONTRIBUTING files for licensing details.
 //
+#include <iostream>
 
 #include "task.hpp"
 
 #include <lib/rrc/encode.hpp>
 #include <ue/nas/task.hpp>
 #include <ue/nts.hpp>
+#include <ue/rls/task.hpp>
 #include <utils/random.hpp>
 
 #include <asn/rrc/ASN_RRC_RRCSetup-IEs.h>
@@ -157,34 +159,26 @@ void UeRrcTask::handleEstablishmentFailure()
 
 
 //Urwah
-
 void UeRrcTask::handoverToTargetCellPreservingContext(int newCellId) {
-    // Check if the new cell has a valid signal
     if (hasSignalToCell(newCellId)) {
-        // Get the description of the target (new) cell
-        //auto &targetCellDesc = m_cellDesc[newCellId];
 
-        // Store the current active cell before switching
         ActiveCellInfo lastActiveCell = m_base->shCtx.currentCell.get();
-
-        // Update the active cell to the new cell (preserving PLMN/TAI)
         m_base->shCtx.currentCell.mutate([&](auto &activeCell) {
-            activeCell.cellId = newCellId;  // Set the new cell ID
-            activeCell.plmn = lastActiveCell.plmn;  // Preserve PLMN from the previous cell
-            activeCell.tac = lastActiveCell.tac;    // Preserve TAC from the previous cell
+            activeCell.cellId = newCellId;  
+            activeCell.plmn = lastActiveCell.plmn;  
+            activeCell.tac = lastActiveCell.tac; 
         });
 
-        // Log the successful cell switch
         m_logger->info("Switched to target gNB with cell ID [%d] without changing PLMN/TAI", newCellId);
+        
+        auto w1 = std::make_unique<NmUeRrcToRls>(NmUeRrcToRls::ASSIGN_CURRENT_CELL);
+        w1->cellId = newCellId;
+        m_base->rlsTask->push(std::move(w1));
 
-        // Notify the NAS layer of the cell change (PLMN and TAI remain the same)
-        /*auto notification = std::make_unique<NmUeRrcToNas>(NmUeRrcToNas::ACTIVE_CELL_CHANGED);
-        notification->previousTai = Tai{lastActiveCell.plmn, lastActiveCell.tac};  // Old cell info
-        m_base->nasTask->push(std::move(notification));*/
-        m_base->nasTask->push(std::make_unique<NmUeRrcToNas>(NmUeRrcToNas::RRC_CONNECTION_SETUP)); 
+        m_base->nasTask->push(std::make_unique<NmUeRrcToNas>(NmUeRrcToNas::RRC_CONNECTION_SETUP));
+        m_cellDesc.erase(lastActiveCell.cellId);
 
     } else {
-        // If the signal for the target cell isn't available, log an error
         m_logger->err("Failed to switch to target gNB. Cell ID [%d] not detected.", newCellId);
     }
 }

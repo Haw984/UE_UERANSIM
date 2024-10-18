@@ -242,7 +242,7 @@ void UeAppTask::onLoop()
             updateRoutingForTunInterface();
 
             auto x = std::make_unique<NmUeAppToNas>(NmUeAppToNas::SESSION_SWITCH_REQUEST);
-            x->m_pduSession = std::move(w.m_pduSession);
+            x->psi = w.psi;
             m_base->nasTask->push(std::move(x)); 
             break;
         }

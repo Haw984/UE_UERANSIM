@@ -37,7 +37,7 @@ void UeRrcTask::handleRlsSapMessage(NmUeRlsToRrc &msg)
         switchState(ERrcState::RRC_CONNECTED);
         handoverToTargetCellPreservingContext(msg.cellId);
         auto m = std::make_unique<NmUeRrcToApp>(NmUeRrcToApp::SWITCH_REQUEST);
-        m->m_pduSession = std::move(msg.m_pduSession);
+        m->psi = msg.psi;
         m_base->appTask->push(std::move(m)); 
         break;
     }

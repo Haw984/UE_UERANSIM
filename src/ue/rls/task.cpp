@@ -119,7 +119,7 @@ void UeRlsTask::onLoop()
             m_logger->info("Establishing new Connection. ");
             auto m = std::make_unique<NmUeRlsToRrc>(NmUeRlsToRrc::XN_HANDOVER);
             m->cellId = w.cellId;
-            m->m_pduSession = std::move(w.m_pduSession);
+            m->psi = w.psi;
             m_base->rrcTask->push(std::move(m));
 
         }

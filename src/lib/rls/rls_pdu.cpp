@@ -353,73 +353,8 @@ std::unique_ptr<RlsMessage> DecodeRlsMessage(const OctetView &stream)
         std::cout<<"~~~~~~~~XN_SESSION_TRANSMISSION~~~~~~~~~~~"<<std::endl;
         auto res = std::make_unique<RlsXnSessionTransmission>(sti);
 
-        int ueId = stream.read4UI();
-        int psi = stream.read4UI();
-
-
-        res->m_pduSession = std::make_unique<nr::ue::PduSessionResource>(ueId, psi);
-
-        // Read AggregateMaximumBitRate
-        res->m_pduSession->sessionAmbr.dlAmbr = stream.read8UL();
-        res->m_pduSession->sessionAmbr.ulAmbr = stream.read8UL();
-
-        // Read boolean and PduSessionType
-        res->m_pduSession->dataForwardingNotPossible = static_cast<bool>(stream.readI());
-        res->m_pduSession->sessionType = static_cast<PduSessionType>(stream.readI());
-
-        // Read GtpTunnel upTunnel
-        res->m_pduSession->upTunnel.teid = stream.read4UI();
-        std::cout<<"res->m_pduSession->upTunnel.teid: "<<res->m_pduSession->upTunnel.teid<<std::endl;
-        //int address = sizeof(stream.readI());
-        //std::cout<<"Address: "<< address<<std::endl;
-        res->m_pduSession->upTunnel.address = stream.readOctetString(stream.read4I());
-        std::cout << "Size of OctetString object: " << sizeof(res->m_pduSession->upTunnel.address) << " bytes" << std::endl;
-        // Assuming m.m_pduSession->upTunnel.address is an OctetString
-        for (size_t i = 0; i < sizeof(res->m_pduSession->upTunnel.address); ++i) {
-            if (i != 0) {
-                std::cout << ".";
-            }
-            std::cout << static_cast<int>(res->m_pduSession->upTunnel.address.data()[i]);
-        }
-        std::cout << std::endl;
-
-
-        // Read GtpTunnel downTunnel
-        res->m_pduSession->downTunnel.teid = stream.read4UI();
-        std::cout<<"res->m_pduSession->downTunnel.teid: "<<res->m_pduSession->downTunnel.teid<<std::endl;
-        res->m_pduSession->downTunnel.address = stream.readOctetString(stream.read4I());
-        std::cout << "Size of OctetString object: " << sizeof(res->m_pduSession->downTunnel.address) << " bytes" << std::endl;
-        //std::cout<<"Len: "<<len<<std::endl;
-        for (size_t i = 0; i < sizeof(res->m_pduSession->downTunnel.address); ++i) {
-            if (i != 0) {
-                std::cout << ".";
-            }
-            std::cout << static_cast<int>(res->m_pduSession->downTunnel.address.data()[i]);
-        }
-        std::cout<<"GTP Tunnel Address (hex): ";
-        for (size_t i = 0; i < sizeof(res->m_pduSession->downTunnel.address); ++i) {
-            printf("%02x ", res->m_pduSession->downTunnel.address.data()[i]);
-        }
-        printf("\n");
-        std::cout << std::endl;
-        // Read QoS Flows
-        int qosFlowCount = stream.read4I();
-        std::cout << "List: " << qosFlowCount << std::endl;
-
-        // Allocate space for qosFlows
-        asn::Unique<ASN_NGAP_QosFlowSetupRequestList> newQosFlows(asn::New<ASN_NGAP_QosFlowSetupRequestList>());
-        res->m_pduSession->qosFlows = std::move(newQosFlows);
-        res->m_pduSession->qosFlows->list.array = new ASN_NGAP_QosFlowSetupRequestItem*[qosFlowCount];
-
-        for (int iQos = 0; iQos < qosFlowCount; iQos++) {
-            res->m_pduSession->qosFlows->list.array[iQos] = new ASN_NGAP_QosFlowSetupRequestItem();
-            res->m_pduSession->qosFlows->list.array[iQos]->qosFlowIdentifier = stream.read4I();
-            std::cout<<"res->m_pduSession->qosFlows->list.array[iQos]->qosFlowIdentifier: "<<res->m_pduSession->qosFlows->list.array[iQos]->qosFlowIdentifier<<std::endl;
-        }
-        res->m_pduSession->qosFlows->list.count = qosFlowCount;
-        std::cout<<"res->m_pduSession->qosFlows->list.array[0]->qosFlowIdentifier: "<<res->m_pduSession->qosFlows->list.array[0]->qosFlowIdentifier<<std::endl;
-
-        std::cout<<" Decoding is running@@@"<<std::endl;
+        res->pduId = stream.read4UI();
+        res->payload = stream.read4UI();
 
         return res;
 

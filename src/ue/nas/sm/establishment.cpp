@@ -218,10 +218,10 @@ void NasSm::receiveEstablishmentReject(const nas::PduSessionEstablishmentReject 
         // TODO: inform the upper layers of the failure of the procedure
     }
 }
-void NasSm::receiveXnHandoverEstablishmentAccept(const std::unique_ptr<PduSessionResource> m_pduSession)
+void NasSm::receiveXnHandoverEstablishmentAccept()
 {
     std::cout<<"WOrking with Nas SM"<<std::endl;
-    //std::cout<<"m_pduSessions[m_pduSession->psi]: "<< m_pduSessions[m_pduSession->psi] <<std::endl;
+    m_mm->m_cmState = std::move(ECmState::CM_CONNECTED);
     return;
 }
 

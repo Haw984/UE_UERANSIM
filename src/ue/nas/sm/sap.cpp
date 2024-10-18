@@ -50,23 +50,30 @@ void NasSm::onTimerTick()
 
 void NasSm::handleUplinkDataRequest(int psi, OctetString &&data)
 {
+    //std::cout<<1<<std::endl;
     auto state = m_mm->m_mmSubState;
     if (state != EMmSubState::MM_REGISTERED_INITIATED_PS && state != EMmSubState::MM_REGISTERED_NORMAL_SERVICE &&
         state != EMmSubState::MM_REGISTERED_NON_ALLOWED_SERVICE &&
         state != EMmSubState::MM_REGISTERED_LIMITED_SERVICE && state != EMmSubState::MM_DEREGISTERED_INITIATED_PS &&
         state != EMmSubState::MM_SERVICE_REQUEST_INITIATED_PS)
+        //std::cout<<2<<std::endl;
+
         return;
 
     if (m_pduSessions[psi]->psState != EPsState::ACTIVE)
+        //std::cout<<3<<std::endl;
+
         return;
 
     if (m_mm->m_cmState == ECmState::CM_CONNECTED)
     {
         // TODO: We should also check if radio resources are established by RRC.
         //  Checking CM state is not sufficient
+        //std::cout<<4<<std::endl;
 
         if (m_pduSessions[psi]->uplinkPending)
         {
+            std::cout<<5<<std::endl;
             m_pduSessions[psi]->uplinkPending = false;
             handleUplinkStatusChange(psi, false);
         }
@@ -79,8 +86,10 @@ void NasSm::handleUplinkDataRequest(int psi, OctetString &&data)
     }
     else
     {
+        //std::cout<<6<<std::endl;
         if (!m_pduSessions[psi]->uplinkPending)
         {
+            //std::cout<<7<<std::endl;
             m_pduSessions[psi]->uplinkPending = true;
             handleUplinkStatusChange(psi, true);
         }

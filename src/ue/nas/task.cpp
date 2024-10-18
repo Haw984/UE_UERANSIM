@@ -90,7 +90,7 @@ void NasTask::onLoop()
         }
         case NmUeAppToNas::SESSION_SWITCH_REQUEST:
         {
-            sm->receiveXnHandoverEstablishmentAccept(std::move(w.m_pduSession));
+            sm->receiveXnHandoverEstablishmentAccept();
             break;
         }
         default:

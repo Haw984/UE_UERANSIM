@@ -181,7 +181,7 @@ struct NmUeRlsToRrc : NtsMessage
     rls::ERlfCause rlfCause{};
 
     //Urwah
-    std::unique_ptr<PduSessionResource> m_pduSession;
+    int psi;
 
     explicit NmUeRlsToRrc(PR present) : NtsMessage(NtsMessageType::UE_RLS_TO_RRC), present(present)
     {
