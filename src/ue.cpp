@@ -276,17 +276,20 @@ static nr::ue::UeConfig *ReadConfigYaml()
 
     if (yaml::HasField(config, "velocity"))
     {
-        result->velocity=config["velocity"].as<int>();
+        result->velocity=config["velocity"].as<float>();
     }
 
     if (yaml::HasField(config, "wifi"))
     {
-	result->wifi=config["wifi"].as<bool>();
+	    result->wifi=config["wifi"].as<bool>();
     }
     if (yaml::HasField(config, "wifi"))
     {
-	result->staticIP = yaml::GetString(config,"staticIP");
-	result->interface = yaml::GetString(config,"Interface");
+        if (result->wifi)
+        {
+            result->staticIP = yaml::GetString(config,"staticIP");
+            result->interface = yaml::GetString(config,"Interface");
+        }
     }
     return result;
 }

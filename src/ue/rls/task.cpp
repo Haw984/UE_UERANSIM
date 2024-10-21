@@ -168,9 +168,7 @@ void UeRlsTask::onLoop()
             break;
         }
         case NmUeNasToRls::CHANGE_SESSION:{
-            //auto m = std::make_unique<NmUeRlsToRls>(NmUeRlsToRls::CHANGE_SESSION);
             m_ueSecurityCapability = std::move(w.ueSecurityCapability);
-            //m_ctlTask->push(std::move(m));
             break;
         }
 

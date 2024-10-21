@@ -142,7 +142,7 @@ int findMaintainIndex(const std::string& ipv4Address) {
 namespace nr::ue
 {
 
-RlsUdpTask::RlsUdpTask(TaskBase *base, RlsSharedContext *shCtx, const std::vector<std::string> &searchSpace, std::vector<Vector3> simPos, const std::string mobPattern,const int velocity, const bool wifi)
+RlsUdpTask::RlsUdpTask(TaskBase *base, RlsSharedContext *shCtx, const std::vector<std::string> &searchSpace, std::vector<Vector3> simPos, const std::string mobPattern,const float velocity, const bool wifi)
     : m_server{}, m_ctlTask{}, m_shCtx{shCtx}, m_searchSpace{}, m_cells{}, m_cellIdToSti{}, m_lastLoop{},m_simPos{simPos},
       m_mobPattern{mobPattern}, m_cellIdCounter{}, m_velocity{velocity}, m_wifi{wifi}
 {
@@ -156,13 +156,13 @@ RlsUdpTask::RlsUdpTask(TaskBase *base, RlsSharedContext *shCtx, const std::vecto
 void RlsUdpTask::onStart()
 {
    m_simPosIndex = 0;
-   velocity_in_time = speedTimeCalculation(m_simPos, m_velocity);
+   speedTimeCalculation(m_simPos, m_velocity);
 }
 
 void RlsUdpTask::onLoop()
 {
     auto current = utils::CurrentTimeMillis();
-    if (current - m_lastLoop > LOOP_PERIOD) //velocity_in_time
+    if (current - m_lastLoop > LOOP_PERIOD)
     {
         if(m_mobPattern == "linear")
         {
@@ -349,42 +349,43 @@ void RlsUdpTask::initialize(NtsTask *ctlTask)
     m_ctlTask = ctlTask;
 }
 
-int RlsUdpTask::speedTimeCalculation(const std::vector<Vector3> simPos, int velocity)
+void RlsUdpTask::speedTimeCalculation(std::vector<Vector3>& simPos, float velocity)
 {
-    std::vector<double> x_values, y_values, z_values;
-    for (const auto& vector : simPos) {
-        x_values.push_back(vector.x);
-        y_values.push_back(vector.y);
-        z_values.push_back(vector.z);
+    if (simPos.size() < 2 || velocity <= 0.0f) {
+        return; // No movement or invalid velocity
     }
 
-    size_t size = x_values.size();
-    int lastIndex = size - 1;
-    int deltaX = x_values[lastIndex] - x_values[0];
-    int deltaY = y_values[lastIndex] - y_values[0];
-    int deltaZ = z_values[lastIndex] - z_values[0];
+    std::vector<Vector3> modifiedSimPos;
 
-    // Compute squared distances separately and then take the square root
-    double squaredDistance = deltaX * deltaX + deltaY * deltaY + deltaZ * deltaZ;
-    double distance = std::sqrt(squaredDistance);
+    // Loop through each consecutive pair of points
+    for (size_t i = 1; i < simPos.size(); ++i) {
+        float deltaX = simPos[i].x - simPos[i - 1].x;
+        float deltaY = simPos[i].y - simPos[i - 1].y;
+        float deltaZ = simPos[i].z - simPos[i - 1].z;
 
-    double time;
-    if (distance == 0) {
-        time = 0;
-    } 
-    else if (velocity == 0)
-    {
-        time = 0;
-    }    
-    else {
-        double time_in_sec = distance / velocity;
-        std::cout << "time in second: " << time_in_sec << std::endl;
-        time = time_in_sec * 1000; // convert into millisecond
-        std::cout << "time in millisecond: " << time << std::endl;
+        // Calculate the distance between the two points
+        float squaredDistance = deltaX * deltaX + deltaY * deltaY + deltaZ * deltaZ;
+        float distance = std::sqrt(squaredDistance);
+
+        // Calculate the time (in seconds) to travel between these two points
+        float time_in_sec = distance / velocity;
+
+        // Calculate how many times the UE should "stay" at the first point
+        int repetitions = static_cast<int>(std::round(time_in_sec));
+
+        // Repeat the current position for the calculated duration
+        for (int j = 0; j < repetitions; ++j) {
+            modifiedSimPos.push_back(simPos[i - 1]); // Repeat the starting point of the segment
+        }
     }
 
-    return time;
+    // For the final point, append it without repetition
+    modifiedSimPos.push_back(simPos.back());
 
+    // Replace the original simPos with the modified one
+    simPos = std::move(modifiedSimPos);
+
+    std::cout << "New position array size after repetition: " << simPos.size() << std::endl;
 }
 
 // Function to find the cell with the highest dBm

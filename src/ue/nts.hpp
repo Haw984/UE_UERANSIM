@@ -311,7 +311,6 @@ struct NmUeRlsToRls : NtsMessage
         RADIO_LINK_FAILURE,
         TRANSMISSION_FAILURE,
         ASSIGN_CURRENT_CELL,
-        CHANGE_SESSION,
         //Urwah
         ESTABLISH_CONNECTION,
         RECEIVE_RLS_MESSAGE,

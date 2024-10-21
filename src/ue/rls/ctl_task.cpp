@@ -75,16 +75,6 @@ void RlsControlTask::onLoop()
         case NmUeRlsToRls::ASSIGN_CURRENT_CELL:
             m_servingCell = w.cellId;
             break;
-        case NmUeRlsToRls::CHANGE_SESSION:{
-            std::cout<<"Message received by NmUeRlsToRls::CHANGE_SESSION"<<std::endl;
-            /*if(m_switchSession != nullptr){
-            std::cout<<"m_switchSession->psi"<<m_switchSession->psi<<std::endl;
-            rls::RlsSessionTransmission msg{m_shCtx->sti};
-            msg.payload = static_cast<uint32_t>(m_switchSession->psi);
-            msg.pduId = m_switchSession->ueId;
-            msg.m_pduSession = std::move(m_switchSession);
-            m_udpTask->send(msg.pduId, msg);}*/
-            break;}
         default:
             m_logger->unhandledNts(*msg);
             break;
@@ -158,39 +148,31 @@ void RlsControlTask::handleRlsMessage(int cellId, rls::RlsMessage &msg)
     }
     else if (msg.msgType == rls::EMessageType::SESSION_TRANSMISSION)
     {
-        std::cout<<"Pohnch gya ha msg ctl_task tk!!"<<std::endl;
-        /*auto &m = (rls::RlsSessionTransmission &)msg;
-        m_switchSession = std::move(m.m_pduSession);
-        auto w = std::make_unique<NmUeRlsToRrc>(NmUeRlsToRrc::SIGNAL_CHANGED);
-        w->cellId = m_servingCell;
-        w->dbm = -140;
-        m_mainTask->push(std::move(w));*/
-        auto &m = (rls::RlsSessionTransmission &)msg;
-        rls::RlsSessionTransmission msg{m_shCtx->sti};
-        msg.payload = static_cast<uint32_t>(m.payload);
-        msg.pduId = m.pduId;
-        oldUeId = m.pduId;
-        msg.amfId = m.amfId;
-        msg.m_pduSession = std::move(m.m_pduSession);
-        msg.m_ueSecurityCapability = std::move(m_ueSecurityCapability);
-        m_udpTask->send(cellId, msg);
+        if (oldCell != cellId)
+        {
+            auto &m = (rls::RlsSessionTransmission &)msg;
+            rls::RlsSessionTransmission msg{m_shCtx->sti};
+            msg.payload = static_cast<uint32_t>(m.payload);
+            msg.pduId = m.pduId;
+            oldUeId = m.pduId;
+            msg.amfId = m.amfId;
+            msg.m_pduSession = std::move(m.m_pduSession);
+            msg.m_ueSecurityCapability = std::move(m_ueSecurityCapability);
+            m_udpTask->send(cellId, msg);
+        }
     }
     else if (msg.msgType == rls::EMessageType::XN_SESSION_TRANSMISSION)
     {
-        std::cout<<"Pohnch gya ha msg ctl_task tk msg.msgType == rls::EMessageType::XN_SESSION_TRANSMISSION!!"<<std::endl;
         auto &m = (rls::RlsXnSessionTransmission &)msg;
         rls::RlsTerminateSession msg{m_shCtx->sti};
         msg.pduId = oldUeId;
         msg.psi = m.payload;
-        std::cout<<2<<std::endl;
         m_udpTask->send(oldCell, msg);
 
         auto w = std::make_unique<NmUeRlsToRls>(NmUeRlsToRls::ESTABLISH_CONNECTION);
         w->psi = m.payload;
         w->cellId = cellId;
         m_mainTask->push(std::move(w));
-        std::cout<<"Old Cell!: "<<oldCell<<std::endl;
-        std::cout<<"Old UE ID !: "<<oldUeId<<std::endl;
     }
     else
     {

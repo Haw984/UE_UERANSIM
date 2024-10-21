@@ -115,7 +115,7 @@ struct UeConfig
     std::optional<std::string> tunName{};
     //**My Edition**//
     std::vector<Vector3> phyLocations{};
-    int velocity;
+    float velocity;
     bool wifi;
     std::string staticIP{};
     std::string interface{};

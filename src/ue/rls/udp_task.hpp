@@ -45,14 +45,14 @@ class RlsUdpTask : public NtsTask
     std::string m_mobPattern;
     int m_cellIdCounter;
     int m_simPosIndex;
-    int m_velocity;
+    float m_velocity;
     friend class UeCmdHandler;
     int velocity_in_time;
     bool m_wifi;
 
   public:
     explicit RlsUdpTask(TaskBase *base, RlsSharedContext* shCtx, const std::vector<std::string> &searchSpace, 
-    std::vector<Vector3> simPos, const std::string m_mobPattern, const int velocity, const bool wifi);
+    std::vector<Vector3> simPos, const std::string m_mobPattern, const float velocity, const bool wifi);
     ~RlsUdpTask() override = default;
 
   protected:
@@ -65,7 +65,7 @@ class RlsUdpTask : public NtsTask
     void receiveRlsPdu(const InetAddress &addr, std::unique_ptr<rls::RlsMessage> &&msg);
     void onSignalChangeOrLost(int cellId);
     void heartbeatCycle(uint64_t time, const Vector3 &simPos);
-    int speedTimeCalculation(const std::vector<Vector3> simPos, int velocity);
+    void speedTimeCalculation(std::vector<Vector3>& simPos, float velocity);
     int findCellWithHighestDbm(const std::unordered_map<uint64_t, CellInfo>& m_cells);
 
   public:
