@@ -25,9 +25,75 @@ void UeRrcTask::handleCellSignalChange(int cellId, int dbm)
     else
     {
         if (considerLost)
-            notifyCellLost(cellId);
+            {notifyCellLost(cellId);}
         else
+        {
             m_cellDesc[cellId].dbm = dbm;
+            ActiveCellInfo lastActiveCell = m_base->shCtx.currentCell.get();
+            if(cellId == lastActiveCell.cellId)
+            {
+                if (dbm > -50)
+                { 
+                    int flag = system("tc qdisc change dev eth1 root netem delay 1ms loss 0%");
+                    if (flag == 0)
+                    {
+                        m_logger->info("Change in UE Signal Strength Dbm: Very Strong Signal Strength.");
+                    }
+                    else
+                    {
+                        m_logger->warn("Failed to apply netem settings for Very Strong Signal Strength.");
+                    }
+                }
+                else if (dbm > -70 && dbm <= -50)
+                { 
+                    int flag = system("tc qdisc change dev eth1 root netem delay 10ms loss 0.5% rate 1000000kbit");
+                    if (flag == 0)
+                    {
+                        m_logger->info("Change in UE Signal Strength Dbm: Good Signal Strength.");
+                    }
+                    else
+                    {
+                        m_logger->warn("Failed to apply netem settings for Good Signal Strength.");
+                    }
+                }
+                else if (dbm > -80 && dbm <= -70)
+                { 
+                    int flag = system("tc qdisc change dev eth1 root netem delay 25ms loss 1% rate 500000kbit");
+                    if (flag == 0)
+                    {
+                        m_logger->info("Change in UE Signal Strength Dbm: Moderate Signal Strength.");
+                    }
+                    else
+                    {
+                        m_logger->warn("Failed to apply netem settings for Moderate Signal Strength.");
+                    }
+                }
+                else if (dbm > -90 && dbm <= -80)
+                { 
+                    int flag = system("tc qdisc change dev eth1 root netem delay 40ms loss 5% rate 100000kbit");
+                    if (flag == 0)
+                    {
+                        m_logger->info("Change in UE Signal Strength Dbm: Weak Signal Strength.");
+                    }
+                    else
+                    {
+                        m_logger->warn("Failed to apply netem settings for Weak Signal Strength.");
+                    }
+                }
+                else if (dbm >= -120 && dbm <= -90)
+                {
+                    int flag = system("tc qdisc change dev eth1 root netem delay 100ms loss 10% rate 50000kbit");
+                    if (flag == 0)
+                    {
+                        m_logger->info("Change in UE Signal Strength Dbm: Very Weak Signal Strength.");
+                    }
+                    else
+                    {
+                        m_logger->warn("Failed to apply netem settings for Very Weak Signal Strength.");
+                    }
+                }
+            }
+        }
     }
 }
 

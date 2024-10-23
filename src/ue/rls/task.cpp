@@ -54,38 +54,6 @@ void UeRlsTask::onLoop()
             m->cellId = w.cellId;
             m->dbm = w.dbm;
             m_base->rrcTask->push(std::move(m));
-    	    if (w.dbm < -100)
-            { 
-		    //int check = system ("tc qdisc show dev eth1");
-        	int flag= system("tc qdisc change dev eth1 root netem delay 10ms loss 1%");
-            if (flag == 0)
-            {
-                std::cout<<"Change in Signal Strength:" << w.dbm << " Dbm, Delay of 10ms, packet loss 1% "<<std::endl;
-                //m_logger->info("Change in UE Signal Strength Dbm: [%d], Delay of 10ms, packet loss 1%", w.dbm);
-            }
-            else
-            {
-                int flag= system("tc qdisc add dev eth1 root netem delay 10ms loss 1%");
-                if (flag==0)
-                {}
-            }
-
-       	    }
-            if (w.dbm > -100)
-            { 
-                int flag =system("tc qdisc change dev eth1 root netem delay 0ms loss 0%");
-                if (flag == 0)
-                {
-                std::cout<<"Change in Signal Strength: "<<w.dbm << " Dbm, Delay of 0ms, packet loss 0% "<<std::endl;
-                }
-                else
-                {
-                int flag= system("tc qdisc add dev eth1 root netem delay 10ms loss 1%");
-                if (flag==0)
-                {}
-                }
-
-            }
             break;
         }
         case NmUeRlsToRls::DOWNLINK_DATA: {
