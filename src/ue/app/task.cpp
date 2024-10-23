@@ -127,9 +127,7 @@ void UeAppTask::onLoop()
 	    std::vector<int> maintainIndices = findAllMaintainIndices();
         if (!maintainIndices.empty() )
         {
-             std::cout << "Indices where 'Maintain' occurs:" << std::endl;
              for (int maintainIndex : maintainIndices) {
-             std::cout << maintainIndex <<std::endl;
              if (maintainIndex > 0) {
              NtsTask::apSelection.additionalInfo[maintainIndex] = "Establish"; // Assign empty string to the element
              int status = system("ip route del default");
@@ -147,8 +145,8 @@ void UeAppTask::onLoop()
                 m_logger->info("Building Connection.");
         }
         setupTunInterface(&wifiSession); // Pass the address of session to setupTunInterface
-	NtsTask::connectionEstablished = true;
-	NtsTask::apSelection.additionalInfo[0] =  std::move("Maintain");
+	    NtsTask::connectionEstablished = true;
+	    NtsTask::apSelection.additionalInfo[0] =  std::move("Maintain");
 	}
 	else if (NtsTask::apSelection.additionalInfo[0] == "Maintain" && NtsTask::counter < 10)
 	{
@@ -184,7 +182,6 @@ void UeAppTask::onLoop()
                 delete m_tunTasks[wifiSession.psi];
                 m_tunTasks[wifiSession.psi] = nullptr;
             }
-           //NtsTask::apSelection.additionalInfo[0] = "";
         }
 
 	}
@@ -238,9 +235,7 @@ void UeAppTask::onLoop()
         switch (w.present)
         {
         case NmUeRrcToApp::SWITCH_REQUEST: {
-            std::cout<<"NmUeRrcToApp::SWITCH_REQUEST"<<std::endl;
             updateRoutingForTunInterface();
-
             auto x = std::make_unique<NmUeAppToNas>(NmUeAppToNas::SESSION_SWITCH_REQUEST);
             x->psi = w.psi;
             m_base->nasTask->push(std::move(x)); 
@@ -273,22 +268,12 @@ void UeAppTask::onLoop()
         break;
     }
 }
-//Urwah Edition
-/*void UeAppTask::releaseSession(const PduSession *pduSession)
-{
-    m_logger->info(" Releasing Tun configuration. ");
-
-    std::string ipAddress = utils::OctetStringToIp(pduSession->pduAddress->pduAddressInformation);
-    tun::RemoveTun(m_tunName, ipAddress);
-
-}*/
 
 void UeAppTask::receiveStatusUpdate(NmUeStatusUpdate &msg)
 {
     if (msg.what == NmUeStatusUpdate::SESSION_ESTABLISHMENT)
     {
         auto *session = msg.pduSession;
-        //m_pduSession = std::make_unique<PduSession>(session);
         setupTunInterface(session);
         return;
     }
@@ -298,7 +283,6 @@ void UeAppTask::receiveStatusUpdate(NmUeStatusUpdate &msg)
         if (m_tunTasks[msg.psi] != nullptr)
         {
             m_tunTasks[msg.psi]->quit();
-            std::cout<<"app/task.cpp: Session Release tun"<<std::endl;
             delete m_tunTasks[msg.psi];
             m_tunTasks[msg.psi] = nullptr;
         }
@@ -357,13 +341,7 @@ void UeAppTask::setupTunInterface(const PduSession *pduSession)
         m_logger->err("TUN allocation failure [%s]", error.c_str());
         return;
     }
-    for (size_t i = 0; i < sizeof(pduSession->pduAddress->pduAddressInformation); ++i) {
-        if (i != 0) {
-            std::cout << ".";
-        }
-        std::cout << static_cast<int>(pduSession->pduAddress->pduAddressInformation.data()[i]);
-    }
-    std::cout << std::endl;
+ 
     std::string ipAddress = utils::OctetStringToIp(pduSession->pduAddress->pduAddressInformation);
 
     bool r = tun::TunConfigure(allocatedName, ipAddress, cons::TunMtu, m_base->config->configureRouting, error);

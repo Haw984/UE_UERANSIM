@@ -11,7 +11,6 @@
 #include <asn/ngap/ASN_NGAP_AssociatedQosFlowItem.h>
 
 #include <utils/common.hpp>
-#include <iostream>
 
 static constexpr const size_t MAX_PDU_COUNT = 128;
 static constexpr const int MAX_PDU_TTL = 3000;
@@ -61,7 +60,6 @@ void RlsControlTask::onLoop()
         case NmUeRlsToRls::RECEIVE_RLS_MESSAGE:
             if (w.msg->msgType == rls::EMessageType::SESSION_TRANSMISSION)
             {
-                std::cout<<"Old Cell!: "<<w.old_cellId<<std::endl;
                 oldCell = w.old_cellId;
             }
             handleRlsMessage(w.cellId, *w.msg);
@@ -197,7 +195,6 @@ void RlsControlTask::handleUplinkRrcDelivery(int cellId, uint32_t pduId, rrc::Rr
             m_pduMap.clear();
 
             auto w = std::make_unique<NmUeRlsToRls>(NmUeRlsToRls::RADIO_LINK_FAILURE);
-            std::cout<<"rls::ERlfCause::PDU_ID_EXISTS"<<std::endl;
             w->rlfCause = rls::ERlfCause::PDU_ID_EXISTS;
             m_mainTask->push(std::move(w));
             return;
@@ -209,8 +206,6 @@ void RlsControlTask::handleUplinkRrcDelivery(int cellId, uint32_t pduId, rrc::Rr
 
             auto w = std::make_unique<NmUeRlsToRls>(NmUeRlsToRls::RADIO_LINK_FAILURE);
             w->rlfCause = rls::ERlfCause::PDU_ID_FULL;
-            std::cout<<"rls::ERlfCause::PDU_ID_FULL"<<std::endl;
-
             m_mainTask->push(std::move(w));
             return;
         }
@@ -238,7 +233,6 @@ void RlsControlTask::handleUplinkDataDelivery(int psi, OctetString &&data)
     msg.pdu = std::move(data);
     msg.payload = static_cast<uint32_t>(psi);
     msg.pduId = 0;
-    std::cout<<"Uplink data idhr tk aa rha ha!!! "<<m_servingCell<<std::endl;
     m_udpTask->send(m_servingCell, msg);
 }
 

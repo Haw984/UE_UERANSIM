@@ -7,7 +7,6 @@
 //
 
 #include "udp_task.hpp"
-#include <iostream>
 #include <cstdint>
 #include <cstring>
 #include <set>
@@ -58,17 +57,6 @@ std::string getIPv4AddressString(const InetAddress &inetAddress) {
   return std::string(ipString);
 }
 
-void printAPSelection() {
-    std::cout << "AP Selection List:" << std::endl;
-    for (size_t i = 0; i < NtsTask::apSelection.ipv4address.size(); ++i) {
-        std::cout << "IPv4 Address: " << NtsTask::apSelection.ipv4address[i] << std::endl;
-        std::cout << "dBm: " << NtsTask::apSelection.dbmWifi[i] << std::endl;
-        std::cout << "Additional Info: " << NtsTask::apSelection.additionalInfo[i] << std::endl;
-        std::cout << "---------------------" << std::endl;
-    }
-}
-
-
 // Function to add or update IP address, dBm, and additional info in a wifiAp struct
 void addOrUpdateIPAddress(const std::string& ipv4Address, int newDbm, const std::string& additionalInfo) {
     // Check if the IPv4 address already exists in the vector
@@ -80,13 +68,11 @@ void addOrUpdateIPAddress(const std::string& ipv4Address, int newDbm, const std:
         // Update dBm and additional info at the found index
         NtsTask::apSelection.dbmWifi[index] = newDbm;
         NtsTask::apSelection.additionalInfo[index] = additionalInfo;
-        std::cout << "Updated dBm and additional info for IP address " << ipv4Address << std::endl;
     } else {
         // If address doesn't exist, add it to the vectors
         NtsTask::apSelection.ipv4address.push_back(ipv4Address);
         NtsTask::apSelection.dbmWifi.push_back(newDbm);
         NtsTask::apSelection.additionalInfo.push_back(additionalInfo);
-        std::cout << "Added IP address " << ipv4Address << " with dBm " << newDbm << " and additional info " << additionalInfo << std::endl;
     }
 }
 
@@ -251,24 +237,21 @@ void RlsUdpTask::receiveRlsPdu(const InetAddress &addr, std::unique_ptr<rls::Rls
         if (m_wifi)
         {
             std::string ipv4Address = getIPv4AddressString(addr);
-                if (newDbm > -120)
-                {
+            if (newDbm > -120)
+            {
             int index = findMaintainIndex(ipv4Address);
-            std::cout<<"index: "<<index<<std::endl;
             if(index != -1){
-            addOrUpdateIPAddress(ipv4Address, newDbm, "Maintain");}
+                addOrUpdateIPAddress(ipv4Address, newDbm, "Maintain");}
             else {
-            addOrUpdateIPAddress(ipv4Address, newDbm, "Establish");}
-                    NtsTask::establishConnection = true;
+                addOrUpdateIPAddress(ipv4Address, newDbm, "Establish");}
+            NtsTask::establishConnection = true;
             sortByDBM();
-                }
+            }
             else if (newDbm < -120)
             {
-            std::cout<<"DBm is less then 120"<<std::endl;
             addOrUpdateIPAddress(ipv4Address, newDbm, "");
             sortByDBM();
             }
-            printAPSelection();
         }
 	    NtsTask::counter = 0;
         if (oldDbm != newDbm)
@@ -288,7 +271,6 @@ void RlsUdpTask::receiveRlsPdu(const InetAddress &addr, std::unique_ptr<rls::Rls
     if (msg->msgType == rls::EMessageType::SESSION_TRANSMISSION)
     {
         w->old_cellId = m_cells[msg->sti].cellId;
-        std::cout<<"msg->sti: "<<msg->sti<<std::endl;
         w->cellId = findCellWithHighestDbm(m_cells);//cell id var is use to send packet to max dbm cell
     }
     else{
@@ -384,8 +366,6 @@ void RlsUdpTask::speedTimeCalculation(std::vector<Vector3>& simPos, float veloci
 
     // Replace the original simPos with the modified one
     simPos = std::move(modifiedSimPos);
-
-    std::cout << "New position array size after repetition: " << simPos.size() << std::endl;
 }
 
 // Function to find the cell with the highest dBm

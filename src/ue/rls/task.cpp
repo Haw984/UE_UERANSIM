@@ -61,7 +61,7 @@ void UeRlsTask::onLoop()
             if (flag == 0)
             {
                 std::cout<<"Change in Signal Strength:" << w.dbm << " Dbm, Delay of 10ms, packet loss 1% "<<std::endl;
-                //m_logger->info("Change in UE Signal Strength Dbm: [%s], Delay of 10ms, packet loss 1%", ToJson(dbm).str().c_str());
+                //m_logger->info("Change in UE Signal Strength Dbm: [%d], Delay of 10ms, packet loss 1%", w.dbm);
             }
             else
             {
@@ -121,7 +121,7 @@ void UeRlsTask::onLoop()
             m->cellId = w.cellId;
             m->psi = w.psi;
             m_base->rrcTask->push(std::move(m));
-
+            break;
         }
         default: {
             m_logger->unhandledNts(*msg);
@@ -171,7 +171,6 @@ void UeRlsTask::onLoop()
             m_ueSecurityCapability = std::move(w.ueSecurityCapability);
             break;
         }
-
         }
         break;
     }

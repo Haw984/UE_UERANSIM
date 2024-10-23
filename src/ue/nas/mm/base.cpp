@@ -14,7 +14,6 @@
 #include <ue/nas/usim/usim.hpp>
 #include <ue/rrc/task.hpp>
 #include <utils/common.hpp>
-#include <iostream>
 
 namespace nr::ue
 {
@@ -93,7 +92,6 @@ void NasMm::performMmCycle()
 
     auto currentCell = m_base->shCtx.currentCell.get();
     Tai currentTai = Tai{currentCell.plmn, currentCell.tac};
-    //std::cout<<"$$$$$$$$$$$$$$$Current Cell: "<<currentCell.cellId<<std::endl;
     /* Perform substate selection in case of primary substate */
     if (m_mmSubState == EMmSubState::MM_DEREGISTERED_PS)
     {
@@ -275,9 +273,6 @@ void NasMm::switchCmState(ECmState state)
 
     if (m_base->nodeListener)
     {
-        std::cout<<"inside m_base->nodeListener"<<std::endl;
-        //std::cout<<"inside m_base->nodeListener"<<  m_base->config->getNodeName() <<std::endl;
-
         m_base->nodeListener->onSwitch(app::NodeType::UE, m_base->config->getNodeName(), app::StateType::CM,
                                        ToJson(oldState).str(), ToJson(m_cmState).str());
     }

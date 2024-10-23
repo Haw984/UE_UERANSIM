@@ -112,8 +112,6 @@ class NasMm
   private: /* Registration */
     EProcRc sendInitialRegistration(EInitialRegCause regCause);
     EProcRc sendMobilityRegistration(ERegUpdateCause updateCause);
-    EProcRc sendPathSwitchRegistration(ERegUpdateCause updateCause);
-    //EProcRc sendPathSwitchRegistration(EInitialRegCause regCause);
     void receiveRegistrationAccept(const nas::RegistrationAccept &msg);
     void receiveInitialRegistrationAccept(const nas::RegistrationAccept &msg);
     void receiveMobilityRegistrationAccept(const nas::RegistrationAccept &msg);
@@ -197,8 +195,6 @@ class NasMm
   private: /* Procedure Control */
     void initialRegistrationRequired(EInitialRegCause cause);
     void mobilityUpdatingRequired(ERegUpdateCause cause);
-    //void pathSwitchRequired(EInitialRegCause cause);
-    void pathSwitchRequired(ERegUpdateCause cause);
     void serviceRequestRequiredForData();
     void serviceRequestRequiredForSignalling();
     void serviceRequestRequired(EServiceReqCause cause);
