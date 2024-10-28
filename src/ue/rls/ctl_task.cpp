@@ -148,6 +148,7 @@ void RlsControlTask::handleRlsMessage(int cellId, rls::RlsMessage &msg)
     {
         if (oldCell != cellId)
         {
+            m_logger->info("Handover Request Received.");
             auto &m = (rls::RlsSessionTransmission &)msg;
             rls::RlsSessionTransmission msg{m_shCtx->sti};
             msg.payload = static_cast<uint32_t>(m.payload);
