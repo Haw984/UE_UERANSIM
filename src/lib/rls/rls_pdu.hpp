@@ -84,6 +84,7 @@ struct RlsSessionTransmission : RlsMessage
     uint32_t amfId {};
     std::unique_ptr<nr::ue::PduSessionResource> m_pduSession;
     nas::IEUeSecurityCapability m_ueSecurityCapability;
+    bool check;
 
     explicit RlsSessionTransmission(uint64_t sti) : RlsMessage(EMessageType::SESSION_TRANSMISSION, sti)
     {

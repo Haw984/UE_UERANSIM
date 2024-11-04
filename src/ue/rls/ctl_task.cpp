@@ -157,6 +157,7 @@ void RlsControlTask::handleRlsMessage(int cellId, rls::RlsMessage &msg)
             msg.amfId = m.amfId;
             msg.m_pduSession = std::move(m.m_pduSession);
             msg.m_ueSecurityCapability = std::move(m_ueSecurityCapability);
+            msg.check = true;
             m_udpTask->send(cellId, msg);
         }
     }
